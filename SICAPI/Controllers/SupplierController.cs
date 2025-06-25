@@ -40,4 +40,28 @@ public class SupplierController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Actualiza información de un proveedor
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("UpdateSupplier")]
+    public async Task<IActionResult> UpdateSupplier(UpdateSupplierRequest request)
+    {
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "UserId");
+
+        if (userIdClaim == null)
+            return Unauthorized("UserId not found in token.");
+
+        int userId = int.Parse(userIdClaim.Value);
+
+        var result = await _supplierRepository.UpdateSupplier(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
 }

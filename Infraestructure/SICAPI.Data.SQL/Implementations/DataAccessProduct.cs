@@ -50,11 +50,73 @@ public class DataAccessProduct : IDataAccessProduct
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "CreateProduct",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO { Code = 500, Message = ex.Message };
         }
 
         return response;
     }
+
+    public async Task<ReplyResponse> UpdateProduct(UpdateProductRequest request, int userId)
+    {
+        ReplyResponse response = new();
+
+        try
+        {
+            var product = await Context.TProducts.FirstOrDefaultAsync(p => p.ProductId == request.ProductId && p.Status == 1);
+
+            if (product == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "Producto no encontrado o inactivo."
+                };
+                return response;
+            }
+
+            product.ProductName = request.ProductName;
+            product.Description = request.Description;
+            product.Barcode = request.Barcode;
+            product.Presentation = request.Presentation;
+            product.UpdateDate = DateTime.Now;
+            product.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Msg = "Producto actualizado correctamente",
+                Status = true
+            };
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "UpdateProduct",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al actualizar producto: {ex.Message}"
+            };
+        }
+
+        return response;
+    }
+
 
     public async Task<ReplyResponse> CreateProductProvider(CreateProductProviderRequest request, int userId)
     {
@@ -99,6 +161,14 @@ public class DataAccessProduct : IDataAccessProduct
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "CreateProductProvider",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO
             {
                 Code = 500,
@@ -144,6 +214,14 @@ public class DataAccessProduct : IDataAccessProduct
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "CreateEntry",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO
             {
                 Code = 500,
@@ -227,6 +305,14 @@ public class DataAccessProduct : IDataAccessProduct
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "CreateEntryDetail",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO
             {
                 Code = 500,

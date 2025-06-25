@@ -1,35 +1,35 @@
-﻿using SICAPI.Data.SQL.Implementations;
-using SICAPI.Data.SQL.Interfaces;
+﻿using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
-using SICAPI.Models.Request.Supplier;
+using SICAPI.Models.Request.Client;
 using SICAPI.Models.Response;
-using SICAPI.Models.Response.User;
 
 namespace SICAPI.Infrastructure.Implementations;
 
-public class SupplierRepository : ISupplierRepository
+public class ClientRepository : IClientRepository
 {
-    private readonly IDataAccessSupplier IDataAccessSupplier;
+    private readonly IDataAccessClient IDataAccessClient;
     private IDataAccessLogs IDataAccessLogs;
 
-    public SupplierRepository(IDataAccessSupplier iDataAccessSupplier, IDataAccessLogs iDataAccessLogs)
+    public ClientRepository(IDataAccessClient iDataAccessClient, IDataAccessLogs iDataAccessLogs)
     {
-        IDataAccessSupplier = iDataAccessSupplier;
+        IDataAccessClient = iDataAccessClient;
         IDataAccessLogs = iDataAccessLogs;
     }
 
-    public Task<ReplyResponse> CreateSupplier(CreateSupplierRequest request, int userId)
+    public Task<ReplyResponse> CreateClient(CreateClientRequest request, int userId)
     {
-        return ExecuteWithLogging(() => IDataAccessSupplier.CreateSupplier(request, userId), "CreateSupplier", userId);
+        return ExecuteWithLogging(() => IDataAccessClient.CreateClient(request, userId), "CreateClient", userId);
     }
 
-
-    public Task<ReplyResponse> UpdateSupplier(UpdateSupplierRequest request, int userId)
+    public Task<ReplyResponse> UpdateClient(UpdateClientRequest request, int userId)
     {
-        return ExecuteWithLogging(() => IDataAccessSupplier.UpdateSupplier(request, userId), "UpdateSupplier", userId);
+        return ExecuteWithLogging(() => IDataAccessClient.UpdateClient(request, userId), "UpdateClient", userId);
     }
-
+    public Task<ReplyResponse> ChangeClientUser(UpdateClientUserRequest request, int userId)
+    {
+        return ExecuteWithLogging(() => IDataAccessClient.ChangeClientUser(request, userId), "ChangeClientUser", userId);
+    }
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
@@ -45,7 +45,7 @@ public class SupplierRepository : ISupplierRepository
             var log = new LogsDTO
             {
                 IdUser = userId,
-                Module = "SICAPI-SupplierRepository",
+                Module = "SICAPI-ClientRepository",
                 Action = actionName,
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"InnerException: {ex.InnerException?.Message}"

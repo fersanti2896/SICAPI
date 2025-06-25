@@ -53,6 +53,14 @@ public class DataAccessSupplier : IDataAccessSupplier
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSupplier",
+                Action = "CreateSupplier",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO
             {
                 Code = 500,
@@ -62,4 +70,62 @@ public class DataAccessSupplier : IDataAccessSupplier
 
         return response;
     }
+
+    public async Task<ReplyResponse> UpdateSupplier(UpdateSupplierRequest request, int userId)
+    {
+        ReplyResponse response = new();
+
+        try
+        {
+            var supplier = await Context.TSuppliers.FirstOrDefaultAsync(s => s.SupplierId == request.SupplierId);
+
+            if (supplier == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "Proveedor no encontrado."
+                };
+                return response;
+            }
+
+            supplier.BusinessName = request.BusinessName;
+            supplier.ContactName = request.ContactName;
+            supplier.Phone = request.Phone;
+            supplier.Email = request.Email;
+            supplier.RFC = request.RFC;
+            supplier.Address = request.Address;
+            supplier.PaymentTerms = request.PaymentTerms;
+            supplier.Notes = request.Notes;
+            supplier.UpdateDate = DateTime.Now;
+            supplier.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Msg = "Proveedor actualizado correctamente.",
+                Status = true
+            };
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSupplier",
+                Action = "UpdateSupplier",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al actualizar proveedor: {ex.Message}"
+            };
+        }
+
+        return response;
+    }
+
 }

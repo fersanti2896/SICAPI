@@ -23,6 +23,10 @@ public class ProductRepository : IProductRepository
     {
         return ExecuteWithLogging(() => IDataAccessProduct.CreateProduct(request, userId), "CreateProduct", userId);
     }
+    public Task<ReplyResponse> UpdateProduct(UpdateProductRequest request, int userId)
+    {
+        return ExecuteWithLogging(() => IDataAccessProduct.UpdateProduct(request, userId), "UpdateProduct", userId);
+    }
 
     public Task<ReplyResponse> CreateProductProvider(CreateProductProviderRequest request, int userId)
     {
@@ -68,6 +72,4 @@ public class ProductRepository : IProductRepository
             return response;
         }
     }
-
-
 }

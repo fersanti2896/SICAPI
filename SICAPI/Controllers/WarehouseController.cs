@@ -38,6 +38,25 @@ public class WarehouseController : ControllerBase
     }
 
     /// <summary>
+    /// Actualiza un producto
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("UpdateProduct")]
+    public async Task<IActionResult> UpdateProduct(UpdateProductRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.UpdateProduct(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Crea la relacion entre el producto y el proveedor
     /// </summary>
     /// <param name="request"></param>

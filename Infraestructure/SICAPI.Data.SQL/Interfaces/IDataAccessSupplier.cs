@@ -6,4 +6,5 @@ namespace SICAPI.Data.SQL.Interfaces;
 public interface IDataAccessSupplier
 {
     Task<ReplyResponse> CreateSupplier(CreateSupplierRequest request, int userId);
+    Task<ReplyResponse> UpdateSupplier(UpdateSupplierRequest request, int userId);
 }
