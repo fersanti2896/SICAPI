@@ -17,4 +17,6 @@ public class TUsers : TDataGeneric
     public int RoleId { get; set; }
     public decimal CreditLimit { get; set; }
     public decimal AvailableCredit { get; set; }
+
+    public virtual TRol? Role { get; set; }
 }

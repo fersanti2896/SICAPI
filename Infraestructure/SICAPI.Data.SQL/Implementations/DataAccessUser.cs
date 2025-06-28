@@ -110,8 +110,9 @@ public class DataAccessUser : IDataAccessUser
             string passwordNormalized = request.Password.ToUpper();
             string encryptedPassword = EncryptDecrypt.EncryptString(passwordNormalized);
 
-            var user = await Context.TUsers
-                .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == encryptedPassword && u.Status == 1);
+            var user = await Context.TUsers.Include(u => u.Role)
+                                           .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == encryptedPassword && u.Status == 1);
+
 
             if (user == null)
             {
@@ -152,7 +153,9 @@ public class DataAccessUser : IDataAccessUser
                 Username = user.Username,
                 Token = accessToken,
                 RefreshToken = refreshToken,
-                FullName = $"{user.FirstName} {user.LastName} {user.MLastName ?? string.Empty}"
+                FullName = $"{user.FirstName} {user.LastName} {user.MLastName ?? string.Empty}",
+                RoleId = user.RoleId,
+                RoleDescription = user.Role?.Description
             };
         }
         catch (Exception ex)
@@ -196,7 +199,8 @@ public class DataAccessUser : IDataAccessUser
             }
 
             // Obtener usuario asociado
-            var user = await Context.TUsers.FirstOrDefaultAsync(u => u.UserId == storedToken.UserId && u.Status == 1);
+            var user = await Context.TUsers.Include(u => u.Role)
+                                    .FirstOrDefaultAsync(u => u.UserId == storedToken.UserId && u.Status == 1);
 
             if (user == null)
             {
@@ -233,7 +237,9 @@ public class DataAccessUser : IDataAccessUser
                 Username = user.Username,
                 Token = newAccessToken,
                 RefreshToken = newRefreshToken,
-                FullName = $"{user.FirstName} {user.LastName} {user.MLastName ?? string.Empty}"
+                FullName = $"{user.FirstName} {user.LastName} {user.MLastName ?? string.Empty}",
+                RoleId = user.RoleId,
+                RoleDescription = user.Role?.Description
             };
         }
         catch (Exception ex)
