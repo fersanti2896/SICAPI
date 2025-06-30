@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SICAPI.Infrastructure.Implementations;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.Request.User;
 
@@ -70,4 +71,37 @@ public class UserController : Controller
         return Ok(result);
     }
 
+    /// <summary>
+    /// Listado de usuarios del sistema
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("GetAllUsers")]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await IUserRepository.GetAllUsers(userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Activa/Desactiva Usuario
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [Authorize]
+    [HttpPost]
+    [Route("DeactivateUser")]
+    public async Task<IActionResult> DeactivateUser(ActivateUserRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await IUserRepository.DeactivateUser(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
 }

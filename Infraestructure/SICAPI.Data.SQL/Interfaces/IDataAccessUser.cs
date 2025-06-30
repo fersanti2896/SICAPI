@@ -1,4 +1,5 @@
-﻿using SICAPI.Models.Request.User;
+﻿using SICAPI.Models.DTOs;
+using SICAPI.Models.Request.User;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.User;
 
@@ -9,4 +10,6 @@ public interface IDataAccessUser
     Task<ReplyResponse> CreateUser(CreateUserRequest request);
     Task<LoginResponse> Login(LoginRequest request);
     Task<LoginResponse> RefreshToken(RefreshTokenRequest request);
+    Task<UsersReponse> GetAllUsers(int userId);
+    Task<ReplyResponse> DeactivateUser(ActivateUserRequest request, int userId);
 }

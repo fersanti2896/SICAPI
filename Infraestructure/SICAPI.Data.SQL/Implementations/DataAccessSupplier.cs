@@ -4,7 +4,9 @@ using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Supplier;
+using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
+using SICAPI.Models.Response.Supplier;
 
 namespace SICAPI.Data.SQL.Implementations;
 
@@ -128,4 +130,116 @@ public class DataAccessSupplier : IDataAccessSupplier
         return response;
     }
 
+    public async Task<SuppliersResponse> GetAllSuppliers(int userId)
+    {
+        SuppliersResponse response = new();
+
+        try
+        {
+            var users = await Context.TSuppliers
+                                     .Select(u => new SupplierDTO
+                                     {
+                                        SupplierId = u.SupplierId,
+                                        BusinessName = u.BusinessName,
+                                        ContactName = u.ContactName,
+                                        Phone = u.Phone,
+                                        Address = u.Address,
+                                        Status = u.Status,
+                                        DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo"
+                                     })
+                                    .ToListAsync();
+
+            response.Result = users;
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            return new SuppliersResponse
+            {
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
+            };
+        }
+
+    }
+
+    public async Task<ReplyResponse> DeactivateSupplier(ActivateRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+
+        try
+        {
+            var supplier = await Context.TSuppliers.FirstOrDefaultAsync(u => u.SupplierId == request.Id);
+
+            if (supplier == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "Proveedor no encontrado"
+                };
+                return response;
+            }
+
+            supplier.Status = request.Status;
+            supplier.UpdateDate = DateTime.Now;
+            supplier.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Msg = request.Status == 1 ? "Proveedor activado correctamente" : "Proveedor desactivado correctamente",
+                Status = true
+            };
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al desactivar proveedor: {ex.Message}"
+            };
+        }
+
+        return response;
+    }
+
+    public async Task<EntrySummaryResponse> GetEntryList(int userId)
+    {
+        EntrySummaryResponse response = new();
+
+        try
+        {
+            var entries = await Context.TEntradasAlmacen
+                                       .Include(e => e.Supplier)
+                                       .Select(e => new EntrySummaryDTO
+                                       {
+                                        SupplierId = e.SupplierId,
+                                        BusinessName = e.Supplier!.BusinessName,
+                                        InvoiceNumber = e.InvoiceNumber,
+                                        EntryDate = e.EntryDate,
+                                        ExpectedPaymentDate = e.ExpectedPaymentDate,
+                                        TotalAmount = e.TotalAmount
+                                       })
+                                       .ToListAsync();
+
+            response.Result = entries;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener listado de entradas: {ex.Message}"
+            };
+        }
+
+        return response;
+    }
 }

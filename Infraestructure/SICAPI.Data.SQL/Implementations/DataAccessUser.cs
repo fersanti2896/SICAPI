@@ -113,7 +113,6 @@ public class DataAccessUser : IDataAccessUser
             var user = await Context.TUsers.Include(u => u.Role)
                                            .FirstOrDefaultAsync(u => u.Username == request.Username && u.PasswordHash == encryptedPassword && u.Status == 1);
 
-
             if (user == null)
             {
                 response.Error = new ErrorDTO
@@ -296,5 +295,85 @@ public class DataAccessUser : IDataAccessUser
         rng.GetBytes(randomNumber);
 
         return Convert.ToBase64String(randomNumber);
+    }
+
+    public async Task<UsersReponse> GetAllUsers(int userId)
+    {
+        UsersReponse response = new();
+        try
+        {
+            var users = await Context.TUsers.Include(u => u.Role)
+                                            .Select(u => new UserDTO
+                                            {
+                                                UserId = u.UserId,
+                                                FirstName = u.FirstName,
+                                                LastName = u.LastName,
+                                                MLastName = u.MLastName,
+                                                Username = u.Username,
+                                                Status = u.Status,
+                                                DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo",
+                                                Role = u.Role.Description
+                                            })
+                                            .ToListAsync();
+
+            response.Result = users;
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            return new UsersReponse
+            {
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
+            };
+        }
+    }
+
+
+    public async Task<ReplyResponse> DeactivateUser(ActivateUserRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+
+        try
+        {
+            var user = await Context.TUsers.FirstOrDefaultAsync(u => u.Username == request.UserName);
+
+            if (user == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "Usuario no encontrado"
+                };
+                return response;
+            }
+
+            user.Status = request.Status;
+            user.UpdateDate = DateTime.Now;
+            user.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Msg = request.Status == 1 ? "Usuario activado correctamente" : "Usuario desactivado correctamente",
+                Status = true
+            };
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al desactivar usuario: {ex.Message}"
+            };
+        }
+
+        return response;
     }
 }

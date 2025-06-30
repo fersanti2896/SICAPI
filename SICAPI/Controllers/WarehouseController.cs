@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SICAPI.Infrastructure.Implementations;
 using SICAPI.Infrastructure.Interfaces;
+using SICAPI.Models.Request.Supplier;
 using SICAPI.Models.Request.Warehouse;
 
 namespace SICAPI.Controllers;
@@ -16,6 +16,38 @@ public class WarehouseController : ControllerBase
     public WarehouseController(IProductRepository iProductRepository)
     {
         IProductRepository = iProductRepository;
+    }
+
+    /// <summary>
+    /// Listado de productos del sistema
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("GetAllProducts")]
+    public async Task<IActionResult> GetAllProducts()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.GetAllProducts(userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Listado de productos del sistema
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("GetProductsBySupplierId")]
+    public async Task<IActionResult> GetProductsBySupplierId(ProductsBySupplierRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.GetProductsBySupplierId(request, userId);
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -76,35 +108,17 @@ public class WarehouseController : ControllerBase
     }
 
     /// <summary>
-    /// Crea el header de la nota de pedido
+    /// Crea la nota de pedido con sus productos vinculados
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
     [HttpPost]
-    [Route("CreateEntry")]
-    public async Task<IActionResult> CreateEntry(CreateEntryRequest request)
-    {
-        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-        var result = await IProductRepository.CreateEntry(request, userId);
-
-        if (result.Error != null)
-            return BadRequest(result);
-
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Crea los detalles de la nota de pedido (Productos)
-    /// </summary>
-    /// <param name="request"></param>
-    /// <returns></returns>
-    [HttpPost]
-    [Route("CreateEntryDetail")]
-    public async Task<IActionResult> CreateEntryDetail(CreateEntryDetailRequest request)
+    [Route("CreateFullEntry")]
+    public async Task<IActionResult> CreateFullEntry(CreateEntryRequest request)
     {
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
-        var result = await IProductRepository.CreateEntryDetail(request, userId);
+        var result = await IProductRepository.CreateFullEntry(request, userId);
 
         if (result.Error != null)
             return BadRequest(result);

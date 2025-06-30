@@ -2,8 +2,11 @@
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
+using SICAPI.Models.Request.Supplier;
 using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
+using SICAPI.Models.Response.Products;
+using SICAPI.Models.Response.Supplier;
 using SICAPI.Models.Response.Warehouse;
 
 namespace SICAPI.Infrastructure.Implementations;
@@ -17,6 +20,37 @@ public class ProductRepository : IProductRepository
     {
         IDataAccessProduct = iDataAccessProduct;
         IDataAccessLogs = iDataAccessLogs;
+    }
+
+    public async Task<ProductsResponse> GetAllProducts(int userId)
+    {
+        ProductsResponse response = new();
+        try
+        {
+            response = await IDataAccessProduct.GetAllProducts(userId);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var log = new LogsDTO
+            {
+                IdUser = 1,
+                Module = "SICAPI-ProductRepository",
+                Action = "GetAllProducts",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            };
+            await IDataAccessLogs.Create(log);
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = ex.Message
+            };
+
+            return response;
+        }
     }
 
     public Task<ReplyResponse> CreateProduct(CreateProductRequest request, int userId)
@@ -33,14 +67,14 @@ public class ProductRepository : IProductRepository
         return ExecuteWithLogging(() => IDataAccessProduct.CreateProductProvider(request, userId), "CreateProductProvider", userId);
     }
 
-    public Task<EntryResponse> CreateEntry(CreateEntryRequest request, int userId)
+    public Task<ReplyResponse> CreateFullEntry(CreateEntryRequest request, int userId)
     {
-        return ExecuteWithLogging(() => IDataAccessProduct.CreateEntry(request, userId), "CreateEntry", userId);
+        return ExecuteWithLogging(() => IDataAccessProduct.CreateFullEntry(request, userId), "CreateFullEntry", userId);
     }
 
-    public Task<ReplyResponse> CreateEntryDetail(CreateEntryDetailRequest request, int userId)
+    public Task<ProductsProvidersResponse> GetProductsBySupplierId(ProductsBySupplierRequest request, int userId)
     {
-        return ExecuteWithLogging(() => IDataAccessProduct.CreateEntryDetail(request, userId), "CreateEntryDetail", userId);
+        return ExecuteWithLogging(() => IDataAccessProduct.GetProductsBySupplierId(request, userId), "GetProductsBySupplierId", userId);
     }
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()

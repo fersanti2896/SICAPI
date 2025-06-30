@@ -3,8 +3,11 @@ using Microsoft.Extensions.Configuration;
 using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
+using SICAPI.Models.Request.Supplier;
 using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
+using SICAPI.Models.Response.Products;
+using SICAPI.Models.Response.Supplier;
 using SICAPI.Models.Response.Warehouse;
 
 namespace SICAPI.Data.SQL.Implementations;
@@ -32,8 +35,9 @@ public class DataAccessProduct : IDataAccessProduct
             {
                 ProductName = request.ProductName,
                 Description = request.Description,
-                Barcode = request.Barcode,
-                Presentation = request.Presentation,
+                Barcode = request.Barcode ?? null,
+                Category = request.Unit,
+                Price = request.Price,
                 CreateDate = DateTime.Now,
                 CreateUser = userId,
                 Status = 1
@@ -86,6 +90,8 @@ public class DataAccessProduct : IDataAccessProduct
             product.Description = request.Description;
             product.Barcode = request.Barcode;
             product.Presentation = request.Presentation;
+            product.Category = request.Category;
+            product.Price = request.Price;
             product.UpdateDate = DateTime.Now;
             product.UpdateUser = userId;
 
@@ -179,17 +185,18 @@ public class DataAccessProduct : IDataAccessProduct
         return response;
     }
 
-    public async Task<EntryResponse> CreateEntry(CreateEntryRequest request, int userId)
+    public async Task<ReplyResponse> CreateFullEntry(CreateEntryRequest request, int userId)
     {
-        EntryResponse response = new();
+        ReplyResponse response = new();
+        using var transaction = await Context.Database.BeginTransactionAsync();
 
         try
         {
-            var entity = new TEntradasAlmacen
+            var entry = new TEntradasAlmacen
             {
                 SupplierId = request.SupplierId,
                 InvoiceNumber = request.InvoiceNumber,
-                EntryDate = request.EntryDate,
+                EntryDate = DateTime.Now,
                 ExpectedPaymentDate = request.ExpectedPaymentDate,
                 TotalAmount = request.TotalAmount,
                 Observations = request.Observations,
@@ -198,16 +205,66 @@ public class DataAccessProduct : IDataAccessProduct
                 CreateUser = userId
             };
 
-            await Context.TEntradasAlmacen.AddAsync(entity);
+            await Context.TEntradasAlmacen.AddAsync(entry);
             await Context.SaveChangesAsync();
 
-
-            response.Result = new EntryDTO
+            foreach (var prod in request.Products)
             {
-                EntryId = entity.EntryId,
-                InvoiceNumber = entity.InvoiceNumber,
-                TotalAmount = entity.TotalAmount,
-                EntryDate = entity.EntryDate
+                var subtotal = prod.Quantity * prod.UnitPrice;
+                var entryDetail = new TEntradaDetalle
+                {
+                    EntryId = entry.EntryId,
+                    ProductProviderId = prod.ProductProviderId,
+                    Quantity = prod.Quantity,
+                    UnitPrice = prod.UnitPrice,
+                    SubTotal = subtotal,
+                    Status = 1,
+                    CreateDate = DateTime.Now,
+                    CreateUser = userId
+                };
+
+                Context.TEntradaDetalle.Add(entryDetail);
+
+                var productId = await Context.TProductProviders
+                    .Where(x => x.ProductProviderId == prod.ProductProviderId)
+                    .Select(x => x.ProductId)
+                    .FirstOrDefaultAsync();
+
+                if (productId == 0)
+                    throw new Exception($"Producto no encontrado para proveedor ID: {prod.ProductProviderId}");
+
+                var inventory = await Context.TInventory.FirstOrDefaultAsync(x => x.ProductId == productId);
+
+                if (inventory != null)
+                {
+                    inventory.CurrentStock += prod.Quantity;
+                    inventory.LastEntryDate = DateTime.Now;
+                    inventory.LastUpdateDate = DateTime.Now;
+                    inventory.UpdateUser = userId;
+                }
+                else
+                {
+                    inventory = new TInventory
+                    {
+                        ProductId = productId,
+                        CurrentStock = prod.Quantity,
+                        LastEntryDate = DateTime.Now,
+                        LastUpdateDate = DateTime.Now,
+                        CreateDate = DateTime.Now,
+                        CreateUser = userId,
+                        Status = 1
+                    };
+                    Context.TInventory.Add(inventory);
+                }
+            }
+
+            await Context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Msg = "Nota de pedido registrada con sus productos",
+                Status = true
             };
 
             return response;            
@@ -232,94 +289,74 @@ public class DataAccessProduct : IDataAccessProduct
         return response;
     }
 
-    public async Task<ReplyResponse> CreateEntryDetail(CreateEntryDetailRequest request, int userId)
+    public async Task<ProductsResponse> GetAllProducts(int userId)
     {
-        ReplyResponse response = new();
+        ProductsResponse response = new();
 
         try
         {
-            var subtotal = request.Quantity * request.UnitPrice;
+            var products = await Context.TProducts
+                                     .Select(u => new ProductDTO
+                                     {
+                                         ProductId = u.ProductId,
+                                         ProductName = u.ProductName,
+                                         Barcode = u.Barcode,
+                                         Unit = u.Category,
+                                         Price = u.Price
+                                     })
+                                    .ToListAsync();
 
-            var entity = new TEntradaDetalle
-            {
-                EntryId = request.EntryId,
-                ProductProviderId = request.ProductProviderId,
-                Quantity = request.Quantity,
-                UnitPrice = request.UnitPrice,
-                SubTotal = subtotal,
-                CreateDate = DateTime.Now,
-                Status = 1,
-                CreateUser = userId
-            };
+            response.Result = products;
 
-            Context.TEntradaDetalle.Add(entity);
-
-            // Actualizar o insertar en inventario
-            var productId = await Context.TProductProviders
-                                .Where(p => p.ProductProviderId == request.ProductProviderId)
-                                .Select(p => p.ProductId)
-                                .FirstOrDefaultAsync();
-
-            if (productId == 0)
-            {
-                response.Error = new ErrorDTO
-                {
-                    Code = 400,
-                    Message = "No se encontró el producto asociado al proveedor."
-                };
-
-                return response;
-            }
-
-            var inventory = await Context.TInventory.FirstOrDefaultAsync(i => i.ProductId == productId);
-
-            if (inventory != null)
-            {
-                inventory.CurrentStock += request.Quantity;
-                inventory.LastEntryDate = DateTime.Now;
-                inventory.LastUpdateDate = DateTime.Now;
-                inventory.UpdateUser = userId;
-            }
-            else
-            {
-                inventory = new TInventory
-                {
-                    ProductId = productId,
-                    CurrentStock = request.Quantity,
-                    LastEntryDate = DateTime.Now,
-                    LastUpdateDate = DateTime.Now,
-                    Status = 1,
-                    CreateDate = DateTime.Now,
-                    CreateUser = userId
-                };
-                Context.TInventory.Add(inventory);
-            }
-
-            await Context.SaveChangesAsync();
-
-            response.Result = new ReplyDTO
-            {
-                Msg = "Detalle de entrada registrado correctamente.",
-                Status = true
-            };
+            return response;
         }
         catch (Exception ex)
         {
-            await IDataAccessLogs.Create(new LogsDTO
+            return new ProductsResponse
             {
-                Module = "SICAPI-DataAccessProduct",
-                Action = "CreateEntryDetail",
-                Message = $"Exception: {ex.Message}",
-                InnerException = $"Inner: {ex.InnerException?.Message}"
-            });
-
-            response.Error = new ErrorDTO
-            {
-                Code = 500,
-                Message = $"Error al registrar detalle de entrada: {ex.Message}"
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
             };
         }
 
-        return response;
+    }
+
+    public async Task<ProductsProvidersResponse> GetProductsBySupplierId(ProductsBySupplierRequest request, int userId)
+    {
+        ProductsProvidersResponse response = new();
+
+        try
+        {
+            var products = await Context.TProductProviders
+                                        .Include(u => u.Product)
+                                        .Select(u => new ProductBySupplierDTO
+                                        {
+                                            ProductProviderId = u.ProductProviderId,
+                                            ProductId = u.ProductId,
+                                            ProductName = u.Product.ProductName
+                                        })
+                                        .ToListAsync();
+
+            response.Result = products;
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            return new ProductsProvidersResponse
+            {
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
+            };
+        }
+
     }
 }
