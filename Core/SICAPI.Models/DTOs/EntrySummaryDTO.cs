@@ -2,6 +2,7 @@
 
 public class EntrySummaryDTO
 {
+    public int EntryId { get; set; }
     public int SupplierId { get; set; }
     public string BusinessName { get; set; } = string.Empty;
     public string InvoiceNumber { get; set; } = string.Empty;

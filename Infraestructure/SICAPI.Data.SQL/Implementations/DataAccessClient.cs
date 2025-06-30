@@ -1,9 +1,13 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Client;
 using SICAPI.Models.Response;
+using SICAPI.Models.Response.Client;
+using SICAPI.Models.Response.Warehouse;
+using System.Net;
 
 namespace SICAPI.Data.SQL.Implementations;
 
@@ -181,4 +185,41 @@ public class DataAccessClient : IDataAccessClient
         return response;
     }
 
+    public async Task<ClientsResponse> GetAllClients(int userId)
+    {
+        ClientsResponse response = new();
+
+        try
+        {
+            var clients = await Context.TClients
+                                     .Select(u => new ClientDTO
+                                     {
+                                        ClientId = u.ClientId,
+                                        ContactName = u.ClientName,
+                                        BusinessName = u.BusinessName,
+                                        Address = u.Address,
+                                        CreditLimit = u.CreditLimit,    
+                                        Email = u.Email,
+                                        PhoneNumber = u.Phone,
+                                        RFC = u.RFC
+                                     })
+                                    .ToListAsync();
+
+            response.Result = clients;
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            return new ClientsResponse
+            {
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
+            };
+        }
+    }
 }

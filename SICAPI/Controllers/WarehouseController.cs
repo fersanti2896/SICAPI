@@ -19,6 +19,22 @@ public class WarehouseController : ControllerBase
     }
 
     /// <summary>
+    /// Inventario Stock
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("GetStock")]
+    public async Task<IActionResult> GetStock()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.GetStock(userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Listado de productos del sistema
     /// </summary>
     /// <returns></returns>
@@ -39,7 +55,7 @@ public class WarehouseController : ControllerBase
     /// </summary>
     /// <returns></returns>
     [Authorize]
-    [HttpGet]
+    [HttpPost]
     [Route("GetProductsBySupplierId")]
     public async Task<IActionResult> GetProductsBySupplierId(ProductsBySupplierRequest request)
     {

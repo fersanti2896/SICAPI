@@ -3,6 +3,7 @@ using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Client;
 using SICAPI.Models.Response;
+using SICAPI.Models.Response.Client;
 
 namespace SICAPI.Infrastructure.Implementations;
 
@@ -29,6 +30,37 @@ public class ClientRepository : IClientRepository
     public Task<ReplyResponse> ChangeClientUser(UpdateClientUserRequest request, int userId)
     {
         return ExecuteWithLogging(() => IDataAccessClient.ChangeClientUser(request, userId), "ChangeClientUser", userId);
+    }
+
+    public async Task<ClientsResponse> GetAllClients(int userId)
+    {
+        ClientsResponse response = new();
+        try
+        {
+            response = await IDataAccessClient.GetAllClients(userId);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var log = new LogsDTO
+            {
+                IdUser = 1,
+                Module = "SICAPI-ClientRepository",
+                Action = "GetAllClients",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            };
+            await IDataAccessLogs.Create(log);
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = ex.Message
+            };
+
+            return response;
+        }
     }
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()

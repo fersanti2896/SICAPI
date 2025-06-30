@@ -19,6 +19,22 @@ public class ClientController : ControllerBase
     }
 
     /// <summary>
+    /// Listado de clientes del sistema
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("GetAllClients")]
+    public async Task<IActionResult> GetAllClients()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IClientRepository.GetAllClients(userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Crea un cliente
     /// </summary>
     /// <param name="request"></param>

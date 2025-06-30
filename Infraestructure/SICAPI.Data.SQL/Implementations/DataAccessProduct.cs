@@ -357,6 +357,41 @@ public class DataAccessProduct : IDataAccessProduct
                 }
             };
         }
+    }
 
+    public async Task<StockResponse> GetStock(int userId)
+    {
+        StockResponse response = new();
+
+        try
+        {
+            var stock = await Context.TInventory
+                                     .Include(u => u.Product)
+                                     .Select(u => new StockDTO
+                                     {
+                                         InventoryId = u.InventoryId,
+                                         ProductName = u.Product.ProductName,
+                                         Description = u.Product.Description ?? string.Empty,
+                                         CurrentStock = u.CurrentStock,
+                                         LastUpdateDate = u.LastUpdateDate
+                                     })
+                                    .ToListAsync();
+
+            response.Result = stock;
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            return new StockResponse
+            {
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
+            };
+        }
     }
 }

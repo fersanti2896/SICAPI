@@ -15,4 +15,5 @@ public interface IDataAccessProduct
     Task<ReplyResponse> CreateFullEntry(CreateEntryRequest request, int userId);
     Task<ProductsResponse> GetAllProducts(int userId);
     Task<ProductsProvidersResponse> GetProductsBySupplierId(ProductsBySupplierRequest request, int userId);
+    Task<StockResponse> GetStock(int userId);
 }

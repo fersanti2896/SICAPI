@@ -220,6 +220,7 @@ public class DataAccessSupplier : IDataAccessSupplier
                                        .Include(e => e.Supplier)
                                        .Select(e => new EntrySummaryDTO
                                        {
+                                        EntryId = e.EntryId,
                                         SupplierId = e.SupplierId,
                                         BusinessName = e.Supplier!.BusinessName,
                                         InvoiceNumber = e.InvoiceNumber,
