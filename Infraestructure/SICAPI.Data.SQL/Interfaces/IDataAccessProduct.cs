@@ -2,7 +2,6 @@
 using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Products;
-using SICAPI.Models.Response.Supplier;
 using SICAPI.Models.Response.Warehouse;
 
 namespace SICAPI.Data.SQL.Interfaces;
@@ -14,6 +13,6 @@ public interface IDataAccessProduct
     Task<ReplyResponse> CreateProductProvider(CreateProductProviderRequest request, int userId);
     Task<ReplyResponse> CreateFullEntry(CreateEntryRequest request, int userId);
     Task<ProductsResponse> GetAllProducts(int userId);
-    Task<ProductsProvidersResponse> GetProductsBySupplierId(ProductsBySupplierRequest request, int userId);
     Task<StockResponse> GetStock(int userId);
+    Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId);
 }

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SICAPI.Infrastructure.Interfaces;
-using SICAPI.Models.Request.Supplier;
 using SICAPI.Models.Request.Warehouse;
 
 namespace SICAPI.Controllers;
@@ -46,22 +45,6 @@ public class WarehouseController : ControllerBase
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
         var result = await IProductRepository.GetAllProducts(userId);
-
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Listado de productos del sistema
-    /// </summary>
-    /// <returns></returns>
-    [Authorize]
-    [HttpPost]
-    [Route("GetProducts")]
-    public async Task<IActionResult> GetProductsBySupplierId(ProductsBySupplierRequest request)
-    {
-        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-
-        var result = await IProductRepository.GetProductsBySupplierId(request, userId);
 
         return Ok(result);
     }
@@ -135,6 +118,25 @@ public class WarehouseController : ControllerBase
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
         var result = await IProductRepository.CreateFullEntry(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Detalles de la nota de pedido
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("FullEntryById")]
+    public async Task<IActionResult> FullEntryById(DetailsEntryRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.FullEntryById(request, userId);
 
         if (result.Error != null)
             return BadRequest(result);

@@ -1,9 +1,8 @@
 ﻿
-using SICAPI.Models.Request.Supplier;
+using Azure.Core;
 using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Products;
-using SICAPI.Models.Response.Supplier;
 using SICAPI.Models.Response.Warehouse;
 
 namespace SICAPI.Infrastructure.Interfaces;
@@ -16,6 +15,6 @@ public interface IProductRepository
     Task<ReplyResponse> UpdateProduct(UpdateProductRequest request, int userId);
     Task<ProductsResponse> GetAllProducts(int userId);
     Task<StockResponse> GetStock(int userId);
-    Task<ProductsProvidersResponse> GetProductsBySupplierId(ProductsBySupplierRequest request, int userId);
+    Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId);
 }
 

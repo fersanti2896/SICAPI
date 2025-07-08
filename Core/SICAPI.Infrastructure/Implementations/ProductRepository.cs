@@ -1,12 +1,9 @@
-﻿using SICAPI.Data.SQL.Implementations;
-using SICAPI.Data.SQL.Interfaces;
+﻿using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
-using SICAPI.Models.Request.Supplier;
 using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Products;
-using SICAPI.Models.Response.Supplier;
 using SICAPI.Models.Response.Warehouse;
 
 namespace SICAPI.Infrastructure.Implementations;
@@ -84,11 +81,11 @@ public class ProductRepository : IProductRepository
         }
     }
     
-
     public Task<ReplyResponse> CreateProduct(CreateProductRequest request, int userId)
     {
         return ExecuteWithLogging(() => IDataAccessProduct.CreateProduct(request, userId), "CreateProduct", userId);
     }
+
     public Task<ReplyResponse> UpdateProduct(UpdateProductRequest request, int userId)
     {
         return ExecuteWithLogging(() => IDataAccessProduct.UpdateProduct(request, userId), "UpdateProduct", userId);
@@ -104,9 +101,8 @@ public class ProductRepository : IProductRepository
         return ExecuteWithLogging(() => IDataAccessProduct.CreateFullEntry(request, userId), "CreateFullEntry", userId);
     }
 
-    public Task<ProductsProvidersResponse> GetProductsBySupplierId(ProductsBySupplierRequest request, int userId)
-    {
-        return ExecuteWithLogging(() => IDataAccessProduct.GetProductsBySupplierId(request, userId), "GetProductsBySupplierId", userId);
+    public Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId) {
+        return ExecuteWithLogging(() => IDataAccessProduct.FullEntryById(request, userId), "FullEntryById", userId);
     }
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()

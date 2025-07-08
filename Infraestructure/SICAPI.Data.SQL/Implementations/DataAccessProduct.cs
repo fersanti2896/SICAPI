@@ -3,11 +3,9 @@ using Microsoft.Extensions.Configuration;
 using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
-using SICAPI.Models.Request.Supplier;
 using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Products;
-using SICAPI.Models.Response.Supplier;
 using SICAPI.Models.Response.Warehouse;
 
 namespace SICAPI.Data.SQL.Implementations;
@@ -290,16 +288,16 @@ public class DataAccessProduct : IDataAccessProduct
         try
         {
             var products = await Context.TProducts
-                                     .Select(u => new ProductDTO
-                                     {
-                                         ProductId = u.ProductId,
-                                         ProductName = u.ProductName,
-                                         Barcode = u.Barcode,
-                                         Unit = u.Category,
-                                         Price = u.Price,
-                                         Description = u.Description
-                                     })
-                                    .ToListAsync();
+                                        .Select(u => new ProductDTO
+                                        {
+                                            ProductId = u.ProductId,
+                                            ProductName = u.ProductName,
+                                            Barcode = u.Barcode,
+                                            Unit = u.Category,
+                                            Price = u.Price,
+                                            Description = u.Description
+                                        })
+                                        .ToListAsync();
 
             response.Result = products;
 
@@ -307,6 +305,14 @@ public class DataAccessProduct : IDataAccessProduct
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "GetAllProducts",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             return new ProductsResponse
             {
                 Result = null,
@@ -318,38 +324,6 @@ public class DataAccessProduct : IDataAccessProduct
             };
         }
 
-    }
-
-    public async Task<ProductsProvidersResponse> GetProductsBySupplierId(ProductsBySupplierRequest request, int userId)
-    {
-        ProductsProvidersResponse response = new();
-
-        try
-        {
-            var products = await Context.TProducts
-                                        .Select(u => new ProductBySupplierDTO
-                                        {
-                                            ProductId = u.ProductId,
-                                            ProductName = u.ProductName
-                                        })
-                                        .ToListAsync();
-
-            response.Result = products;
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            return new ProductsProvidersResponse
-            {
-                Result = null,
-                Error = new ErrorDTO
-                {
-                    Code = 500,
-                    Message = $"Error Exception: {ex.InnerException}"
-                }
-            };
-        }
     }
 
     public async Task<StockResponse> GetStock(int userId)
@@ -376,6 +350,14 @@ public class DataAccessProduct : IDataAccessProduct
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "GetStock",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             return new StockResponse
             {
                 Result = null,
@@ -386,5 +368,68 @@ public class DataAccessProduct : IDataAccessProduct
                 }
             };
         }
+    }
+
+    public async Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId) {
+        DetailsEntryResponse response = new();
+
+        try
+        {
+            var entry = await Context.TEntradasAlmacen.Where(e => e.EntryId == request.EntryId).Include(e => e.Supplier).FirstOrDefaultAsync();
+
+            if (entry == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "Nota de pedido no encontrada."
+                };
+                return response;
+            }
+
+            var details = await Context.TEntradaDetalle.Where(d => d.EntryId == request.EntryId).Include(d => d.Product).ToListAsync();
+
+            var detailsList = details.Select(d => new ProductsDetailsEntryDTO
+            {
+                ProductId = d.ProductId,
+                ProductName = d.Product?.ProductName ?? "Sin nombre",
+                Quantity = d.Quantity,
+                UnitPice = d.UnitPrice,
+                SubTotal = d.SubTotal,
+                Lot = d.Lot,
+                ExpirationDate = d.ExpirationDate
+            }).ToList();
+
+            response.Result = new DetailsEntryDTO
+            {
+                EntryId = entry.EntryId,
+                SupplierId = entry.SupplierId,
+                BusinessName = entry.Supplier?.BusinessName ?? "Proveedor no identificado",
+                InvoiceNumber = entry.InvoiceNumber ?? "",
+                EntryDate = entry.EntryDate,
+                ExpectedPaymentDate = entry.ExpectedPaymentDate ?? DateTime.MinValue,
+                TotalAmount = entry.TotalAmount,
+                Observations = entry.Observations ?? "",
+                ProductsDetails = detailsList
+            };
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "FullEntryById",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener los detalles de la nota de pedido: {ex.Message}"
+            };
+        }
+
+        return response;
     }
 }

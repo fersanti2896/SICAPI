@@ -1,5 +1,4 @@
 ﻿using Azure.Core;
-using SICAPI.Data.SQL.Implementations;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;

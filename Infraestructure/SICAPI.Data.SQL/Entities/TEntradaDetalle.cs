@@ -19,5 +19,4 @@ public class TEntradaDetalle : TDataGeneric
 
     public virtual TEntradasAlmacen? Entry { get; set; }
     public virtual TProducts? Product { get; set; }
-    //public virtual TProductProviders? ProductProvider { get; set; }
 }

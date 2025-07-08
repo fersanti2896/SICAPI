@@ -1,5 +1,4 @@
-﻿using SICAPI.Models.DTOs;
-using SICAPI.Models.Request.User;
+﻿using SICAPI.Models.Request.User;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.User;
 
