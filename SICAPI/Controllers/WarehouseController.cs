@@ -56,7 +56,7 @@ public class WarehouseController : ControllerBase
     /// <returns></returns>
     [Authorize]
     [HttpPost]
-    [Route("GetProductsBySupplierId")]
+    [Route("GetProducts")]
     public async Task<IActionResult> GetProductsBySupplierId(ProductsBySupplierRequest request)
     {
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");

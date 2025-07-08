@@ -90,7 +90,7 @@ public class DataAccessProduct : IDataAccessProduct
             product.Description = request.Description;
             product.Barcode = request.Barcode;
             product.Presentation = request.Presentation;
-            product.Category = request.Category;
+            product.Category = request.Unit;
             product.Price = request.Price;
             product.UpdateDate = DateTime.Now;
             product.UpdateUser = userId;
@@ -214,10 +214,12 @@ public class DataAccessProduct : IDataAccessProduct
                 var entryDetail = new TEntradaDetalle
                 {
                     EntryId = entry.EntryId,
-                    ProductProviderId = prod.ProductProviderId,
+                    ProductId = prod.ProductId,
                     Quantity = prod.Quantity,
                     UnitPrice = prod.UnitPrice,
                     SubTotal = subtotal,
+                    Lot = prod.Lot,
+                    ExpirationDate = prod.ExpirationDate,
                     Status = 1,
                     CreateDate = DateTime.Now,
                     CreateUser = userId
@@ -225,15 +227,7 @@ public class DataAccessProduct : IDataAccessProduct
 
                 Context.TEntradaDetalle.Add(entryDetail);
 
-                var productId = await Context.TProductProviders
-                    .Where(x => x.ProductProviderId == prod.ProductProviderId)
-                    .Select(x => x.ProductId)
-                    .FirstOrDefaultAsync();
-
-                if (productId == 0)
-                    throw new Exception($"Producto no encontrado para proveedor ID: {prod.ProductProviderId}");
-
-                var inventory = await Context.TInventory.FirstOrDefaultAsync(x => x.ProductId == productId);
+                var inventory = await Context.TInventory.FirstOrDefaultAsync(x => x.ProductId == prod.ProductId);
 
                 if (inventory != null)
                 {
@@ -246,7 +240,7 @@ public class DataAccessProduct : IDataAccessProduct
                 {
                     inventory = new TInventory
                     {
-                        ProductId = productId,
+                        ProductId = prod.ProductId,
                         CurrentStock = prod.Quantity,
                         LastEntryDate = DateTime.Now,
                         LastUpdateDate = DateTime.Now,
@@ -302,7 +296,8 @@ public class DataAccessProduct : IDataAccessProduct
                                          ProductName = u.ProductName,
                                          Barcode = u.Barcode,
                                          Unit = u.Category,
-                                         Price = u.Price
+                                         Price = u.Price,
+                                         Description = u.Description
                                      })
                                     .ToListAsync();
 
@@ -331,13 +326,11 @@ public class DataAccessProduct : IDataAccessProduct
 
         try
         {
-            var products = await Context.TProductProviders
-                                        .Include(u => u.Product)
+            var products = await Context.TProducts
                                         .Select(u => new ProductBySupplierDTO
                                         {
-                                            ProductProviderId = u.ProductProviderId,
                                             ProductId = u.ProductId,
-                                            ProductName = u.Product.ProductName
+                                            ProductName = u.ProductName
                                         })
                                         .ToListAsync();
 

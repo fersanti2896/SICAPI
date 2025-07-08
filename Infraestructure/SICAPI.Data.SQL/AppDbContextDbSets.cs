@@ -16,4 +16,6 @@ public partial class AppDbContext
     public virtual DbSet<TEntradaDetalle> TEntradaDetalle { get; set; }
     public virtual DbSet<TInventory> TInventory { get; set; }
     public virtual DbSet<TClients> TClients { get; set; }
+    public virtual DbSet<TPostalCodes> TPostalCodes { get; set; }
+    public virtual DbSet<TClientsAddress> TClientsAddress { get; set; }
 }

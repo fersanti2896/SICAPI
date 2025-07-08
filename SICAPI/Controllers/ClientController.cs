@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.Request.Client;
+using SICAPI.Models.Request.User;
+using SICAPI.Models.Request.Warehouse;
 
 namespace SICAPI.Controllers;
 
@@ -72,22 +74,22 @@ public class ClientController : ControllerBase
     }
 
     /// <summary>
-    /// Asigna cliente a un usuario
+    /// Activa/Desactiva Cliente
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
+    [Authorize]
     [HttpPost]
-    [Route("ChangeClientUser")]
-    public async Task<IActionResult> ChangeClientUser(UpdateClientUserRequest request)
+    [Route("DeactivateClient")]
+    public async Task<IActionResult> DeactivateClient(ActivateRequest request)
     {
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
-        var result = await IClientRepository.ChangeClientUser(request, userId);
+        var result = await IClientRepository.DeactivateClient(request, userId);
 
         if (result.Error != null)
             return BadRequest(result);
 
         return Ok(result);
     }
-
 }

@@ -96,7 +96,7 @@ public class SupplierRepository : ISupplierRepository
 
     public Task<ReplyResponse> DeactivateSupplier(ActivateRequest request, int userId)
     {
-        return ExecuteWithLogging(() => IDataAccessSupplier.DeactivateSupplier(request, userId), "DeactivateUser", userId);
+        return ExecuteWithLogging(() => IDataAccessSupplier.DeactivateSupplier(request, userId), "DeactivateSupplier", userId);
     }
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()

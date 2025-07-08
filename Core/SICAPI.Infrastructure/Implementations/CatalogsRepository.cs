@@ -1,45 +1,45 @@
-﻿using SICAPI.Data.SQL.Interfaces;
+﻿using Azure;
+using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
-using SICAPI.Models.Request.Client;
-using SICAPI.Models.Request.Warehouse;
+using SICAPI.Models.Request.Catalogs;
 using SICAPI.Models.Response;
-using SICAPI.Models.Response.Client;
+using SICAPI.Models.Response.Catalogs;
 
 namespace SICAPI.Infrastructure.Implementations;
 
-public class ClientRepository : IClientRepository
+public class CatalogsRepository : ICatalogsRepository
 {
-    private readonly IDataAccessClient IDataAccessClient;
+    private readonly IDataAccessCatalogs IDataAccessCatalogs;
     private IDataAccessLogs IDataAccessLogs;
 
-    public ClientRepository(IDataAccessClient iDataAccessClient, IDataAccessLogs iDataAccessLogs)
+    public CatalogsRepository(IDataAccessCatalogs iDataAccessCatalogs, IDataAccessLogs iDataAccessLogs)
     {
-        IDataAccessClient = iDataAccessClient;
+        IDataAccessCatalogs = iDataAccessCatalogs;
         IDataAccessLogs = iDataAccessLogs;
     }
 
-    public Task<ReplyResponse> CreateClient(CreateClientRequest request, int userId)
+    public async Task<MunicipalityByStateResponse> GetMunicipalityByState(MunicipalityByStateRequest request, int IdUser)
     {
-        return ExecuteWithLogging(() => IDataAccessClient.CreateClient(request, userId), "CreateClient", userId);
+        return await ExecuteWithLogging(() => IDataAccessCatalogs.GetMunicipalityByState(request, IdUser), "GetMunicipalityByState", IdUser);
     }
 
-    public Task<ReplyResponse> UpdateClient(UpdateClientRequest request, int userId)
+    public async Task<TownByStateAndMunicipalityResponse> GetTownByStateAndMunicipality(TownByStateAndMunicipalityRequest request, int IdUser)
     {
-        return ExecuteWithLogging(() => IDataAccessClient.UpdateClient(request, userId), "UpdateClient", userId);
+        return await ExecuteWithLogging(() => IDataAccessCatalogs.GetTownByStateAndMunicipality(request, IdUser), "GetTownByStateAndMunicipality", IdUser);
     }
 
-    public Task<ReplyResponse> DeactivateClient(ActivateRequest request, int userId)
-    {
-        return ExecuteWithLogging(() => IDataAccessClient.DeactivateClient(request, userId), "DeactivateClient", userId);
+    public async Task<CPResponse> GetCP(CPRequest request, int IdUser) {
+        return await ExecuteWithLogging(() => IDataAccessCatalogs.GetCP(request, IdUser), "GetCP", IdUser);
     }
 
-    public async Task<ClientsResponse> GetAllClients(int userId)
+    public async Task<GetStatesResponse> GetStates(int IdUser)
     {
-        ClientsResponse response = new();
+        GetStatesResponse response = new();
+
         try
         {
-            response = await IDataAccessClient.GetAllClients(userId);
+            response = await IDataAccessCatalogs.GetStates(IdUser);
 
             return response;
         }
@@ -48,8 +48,8 @@ public class ClientRepository : IClientRepository
             var log = new LogsDTO
             {
                 IdUser = 1,
-                Module = "SICAPI-ClientRepository",
-                Action = "GetAllClients",
+                Module = "SICAPI-CatalogsRepository",
+                Action = "GetStates",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"InnerException: {ex.InnerException?.Message}"
             };
@@ -79,7 +79,7 @@ public class ClientRepository : IClientRepository
             var log = new LogsDTO
             {
                 IdUser = userId,
-                Module = "SICAPI-ClientRepository",
+                Module = "SICAPI-CatalogsRepository",
                 Action = actionName,
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"InnerException: {ex.InnerException?.Message}"

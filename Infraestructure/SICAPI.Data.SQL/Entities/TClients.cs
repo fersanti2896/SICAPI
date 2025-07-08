@@ -12,7 +12,6 @@ public class TClients : TDataGeneric
     public int UserId { get; set; }
     public string ClientName { get; set; } = null!;       // Nombre del cliente o contacto
     public string? BusinessName { get; set; }             // Razón social
-    public string? Address { get; set; }                  // Dirección
     public string? Phone { get; set; }                    // Teléfono de contacto
     public string? Email { get; set; }                    // Correo electrónico
     public string? RFC { get; set; }                      // RFC del cliente

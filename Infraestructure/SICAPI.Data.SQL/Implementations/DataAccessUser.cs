@@ -124,27 +124,40 @@ public class DataAccessUser : IDataAccessUser
             }
 
             var accessToken = GenerateJwtToken(user);
-            var existingToken = await Context.TRefreshTokens.FirstOrDefaultAsync(t => t.UserId == user.UserId && !t.IsRevoked && t.ExpirationDate > DateTime.Now);
+            var refreshToken = GenerateRefreshToken();
+            var expiration = DateTime.Now.AddDays(1);
 
-            string refreshToken;
-
-            if (existingToken != null)
-                refreshToken = existingToken.Token;
-            else
+            var newToken = new TRefreshTokens
             {
-                refreshToken = GenerateRefreshToken();
-                var expiration = DateTime.Now.AddDays(1);
+                UserId = user.UserId,
+                Token = refreshToken,
+                ExpirationDate = expiration,
+                IsRevoked = false
+            };
 
-                var newToken = new TRefreshTokens
-                {
-                    UserId = user.UserId,
-                    Token = refreshToken,
-                    ExpirationDate = expiration
-                };
+            await Context.TRefreshTokens.AddAsync(newToken);
+            await Context.SaveChangesAsync();
 
-                await Context.TRefreshTokens.AddAsync(newToken);
-                await Context.SaveChangesAsync();
-            }
+            //var existingToken = await Context.TRefreshTokens.FirstOrDefaultAsync(t => t.UserId == user.UserId && !t.IsRevoked && t.ExpirationDate > DateTime.Now);
+
+
+            //if (existingToken != null)
+            //    refreshToken = existingToken.Token;
+            //else
+            //{
+            //    refreshToken = GenerateRefreshToken();
+            //    var expiration = DateTime.Now.AddDays(1);
+
+            //    var newToken = new TRefreshTokens
+            //    {
+            //        UserId = user.UserId,
+            //        Token = refreshToken,
+            //        ExpirationDate = expiration
+            //    };
+
+            //    await Context.TRefreshTokens.AddAsync(newToken);
+            //    await Context.SaveChangesAsync();
+            //}
 
             response.Result = new LoginDTO
             {
@@ -154,7 +167,7 @@ public class DataAccessUser : IDataAccessUser
                 RefreshToken = refreshToken,
                 FullName = $"{user.FirstName} {user.LastName} {user.MLastName ?? string.Empty}",
                 RoleId = user.RoleId,
-                RoleDescription = user.Role?.Description
+                RoleDescription = user.Role?.Name
             };
         }
         catch (Exception ex)
@@ -199,7 +212,7 @@ public class DataAccessUser : IDataAccessUser
 
             // Obtener usuario asociado
             var user = await Context.TUsers.Include(u => u.Role)
-                                    .FirstOrDefaultAsync(u => u.UserId == storedToken.UserId && u.Status == 1);
+                                           .FirstOrDefaultAsync(u => u.UserId == storedToken.UserId && u.Status == 1);
 
             if (user == null)
             {
@@ -212,8 +225,8 @@ public class DataAccessUser : IDataAccessUser
                 return response;
             }
 
-            // Revocar el refresh token anterior
-            storedToken.IsRevoked = true;
+            // se comenta el revocar el token para que se pueda iniciar en multiples dispositivos
+            //storedToken.IsRevoked = true;
 
             // Generar nuevos tokens
             var newAccessToken = GenerateJwtToken(user);
@@ -238,7 +251,7 @@ public class DataAccessUser : IDataAccessUser
                 RefreshToken = newRefreshToken,
                 FullName = $"{user.FirstName} {user.LastName} {user.MLastName ?? string.Empty}",
                 RoleId = user.RoleId,
-                RoleDescription = user.Role?.Description
+                RoleDescription = user.Role?.Name
             };
         }
         catch (Exception ex)
@@ -312,7 +325,7 @@ public class DataAccessUser : IDataAccessUser
                                                 Username = u.Username,
                                                 Status = u.Status,
                                                 DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo",
-                                                Role = u.Role.Description
+                                                Role = u.Role.Name
                                             })
                                             .ToListAsync();
 
