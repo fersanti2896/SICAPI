@@ -394,7 +394,7 @@ public class DataAccessProduct : IDataAccessProduct
                 ProductId = d.ProductId,
                 ProductName = d.Product?.ProductName ?? "Sin nombre",
                 Quantity = d.Quantity,
-                UnitPice = d.UnitPrice,
+                UnitPrice = d.UnitPrice,
                 SubTotal = d.SubTotal,
                 Lot = d.Lot,
                 ExpirationDate = d.ExpirationDate
