@@ -34,6 +34,22 @@ public class WarehouseController : ControllerBase
     }
 
     /// <summary>
+    /// Productos de Stock Real
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("GetStockReal")]
+    public async Task<IActionResult> GetStockReal()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.GetStockReal(userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Listado de productos del sistema
     /// </summary>
     /// <returns></returns>

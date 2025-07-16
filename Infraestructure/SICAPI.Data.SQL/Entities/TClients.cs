@@ -16,6 +16,7 @@ public class TClients : TDataGeneric
     public string? Email { get; set; }                    // Correo electrónico
     public string? RFC { get; set; }                      // RFC del cliente
     public decimal CreditLimit { get; set; }              // Límite de crédito asignado
+    public decimal AvailableCredit { get; set; }              // Crédito Disponible
     public int? PaymentDays { get; set; }                 // Días de crédito permitidos
     public string? Notes { get; set; }                    // Comentarios u observaciones
     public int IsBlocked { get; set; } = 0;               // Bloqueado para ventas

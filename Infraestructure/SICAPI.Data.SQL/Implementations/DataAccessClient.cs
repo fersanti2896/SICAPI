@@ -39,6 +39,7 @@ public class DataAccessClient : IDataAccessClient
                 Email = request.Email,
                 RFC = request.RFC,
                 CreditLimit = request.CreditLimit,
+                AvailableCredit = request.CreditLimit,
                 PaymentDays = request.PaymentDays,
                 Notes = TextHelper.Capitalize(request.Notes),
                 IsBlocked = 0,
@@ -251,6 +252,47 @@ public class DataAccessClient : IDataAccessClient
             {
                 Module = "SICAPI-DataAccessClient",
                 Action = "GetAllClients",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error Exception: {ex.InnerException?.Message ?? ex.Message}"
+            };
+        }
+
+        return response;
+    }
+
+    public async Task<ClientsByUserResponse> GetClientsByUser(int userId)
+    {
+        ClientsByUserResponse response = new();
+
+        try
+        {
+            var clients = await Context.TClients
+                                       .Where(c => c.UserId == userId).
+                                       Select(c => new ClientByUserDTO
+                                       {
+                                        ClientId = c.ClientId,
+                                        ContactName = c.ClientName,
+                                        BusinessName = c.BusinessName,
+                                        CreditLimit = c.CreditLimit,
+                                        AvailableCredit = c.AvailableCredit,
+                                        PaymentDays = c.PaymentDays,
+                                        IsBlocked = c.IsBlocked
+                                       }).ToListAsync();
+
+            response.Result = clients;
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessClient",
+                Action = "GetClientsByUser",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
             });

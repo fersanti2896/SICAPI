@@ -80,7 +80,39 @@ public class ProductRepository : IProductRepository
             return response;
         }
     }
-    
+
+    public async Task<StockRealResponse> GetStockReal(int userId)
+    {
+        StockRealResponse response = new();
+        try
+        {
+            response = await IDataAccessProduct.GetStockReal(userId);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var log = new LogsDTO
+            {
+                IdUser = 1,
+                Module = "SICAPI-ProductRepository",
+                Action = "GetStockReal",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            };
+            await IDataAccessLogs.Create(log);
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = ex.Message
+            };
+
+            return response;
+        }
+    }
+
+
     public Task<ReplyResponse> CreateProduct(CreateProductRequest request, int userId)
     {
         return ExecuteWithLogging(() => IDataAccessProduct.CreateProduct(request, userId), "CreateProduct", userId);

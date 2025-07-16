@@ -10,5 +10,6 @@ public interface IClientRepository
     Task<ReplyResponse> CreateClient(CreateClientRequest request, int userId);
     Task<ReplyResponse> UpdateClient(UpdateClientRequest request, int userId);
     Task<ClientsResponse> GetAllClients(int userId);
+    Task<ClientsByUserResponse> GetClientsByUser(int userId);
     Task<ReplyResponse> DeactivateClient(ActivateRequest request, int userId);
 }

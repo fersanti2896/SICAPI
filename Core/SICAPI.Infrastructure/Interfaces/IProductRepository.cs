@@ -15,6 +15,7 @@ public interface IProductRepository
     Task<ReplyResponse> UpdateProduct(UpdateProductRequest request, int userId);
     Task<ProductsResponse> GetAllProducts(int userId);
     Task<StockResponse> GetStock(int userId);
+    Task<StockRealResponse> GetStockReal(int userId);
     Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId);
 }
 

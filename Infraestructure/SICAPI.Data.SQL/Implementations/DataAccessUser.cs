@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
+using SICAPI.Models.DTOsc;
 using SICAPI.Models.Helpers;
 using SICAPI.Models.Request.User;
 using SICAPI.Models.Response;
@@ -38,7 +39,7 @@ public class DataAccessUser : IDataAccessUser
             var passwordNormalized = request.PasswordHash.ToUpper();
             var encryptedPassword = EncryptDecrypt.EncryptString(passwordNormalized);
 
-            bool userExists = await Context.TUsers.AnyAsync(u => u.Username == request.Username || u.Email == request.Email);
+            bool userExists = await Context.TUsers.AnyAsync(u => u.Username == request.Username);
 
             if (userExists)
             {
@@ -388,5 +389,45 @@ public class DataAccessUser : IDataAccessUser
         }
 
         return response;
+    }
+
+    public async Task<UserInfoResponse> CreditInfo(int UserId)
+    {
+        UserInfoResponse response = new();
+
+        try
+        {
+            var user = await Context.TUsers.Where(u => u.UserId == UserId)
+                                            .Select(u => new UserCreditInfoDTO
+                                            {
+                                                UserId = u.UserId,
+                                                CreditLimit = u.CreditLimit,
+                                                AvailableCredit = u.AvailableCredit
+                                            }).FirstOrDefaultAsync();
+
+            response.Result = user;
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessUser",
+                Action = "CreditInfo",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            return new UserInfoResponse
+            {
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
+            };
+        }
     }
 }

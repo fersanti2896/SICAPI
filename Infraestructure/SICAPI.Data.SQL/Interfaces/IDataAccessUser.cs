@@ -11,4 +11,5 @@ public interface IDataAccessUser
     Task<LoginResponse> RefreshToken(RefreshTokenRequest request);
     Task<UsersReponse> GetAllUsers(int userId);
     Task<ReplyResponse> DeactivateUser(ActivateUserRequest request, int userId);
+    Task<UserInfoResponse> CreditInfo(int UserId);
 }

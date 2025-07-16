@@ -151,6 +151,38 @@ public class UserRepository : IUserRepository
         }
     }
 
+    public async Task<UserInfoResponse> CreditInfo(int UserId)
+    {
+        UserInfoResponse response = new();
+
+        try
+        {
+            response = await IDataAccessUser.CreditInfo(UserId);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var log = new LogsDTO
+            {
+                IdUser = 1,
+                Module = "SICAPI-UserRepository",
+                Action = "CreditInfo",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            };
+            await IDataAccessLogs.Create(log);
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = ex.Message
+            };
+
+            return response;
+        }
+    }
+
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
         T response = new();

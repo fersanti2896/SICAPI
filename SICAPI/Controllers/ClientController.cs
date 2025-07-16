@@ -37,6 +37,22 @@ public class ClientController : ControllerBase
     }
 
     /// <summary>
+    /// Listado de clientes de un usuario (vendedor)
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("GetClientsByUser")]
+    public async Task<IActionResult> GetClientsByUser()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IClientRepository.GetClientsByUser(userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Crea un cliente
     /// </summary>
     /// <param name="request"></param>

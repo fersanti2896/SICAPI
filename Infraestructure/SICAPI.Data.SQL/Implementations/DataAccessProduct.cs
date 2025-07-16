@@ -233,6 +233,7 @@ public class DataAccessProduct : IDataAccessProduct
                     inventory.LastEntryDate = DateTime.Now;
                     inventory.LastUpdateDate = DateTime.Now;
                     inventory.UpdateUser = userId;
+                    inventory.StockReal = inventory.CurrentStock - inventory.Apartado;
                 }
                 else
                 {
@@ -240,6 +241,8 @@ public class DataAccessProduct : IDataAccessProduct
                     {
                         ProductId = prod.ProductId,
                         CurrentStock = prod.Quantity,
+                        Apartado = 0,
+                        StockReal = prod.Quantity,
                         LastEntryDate = DateTime.Now,
                         LastUpdateDate = DateTime.Now,
                         CreateDate = DateTime.Now,
@@ -340,6 +343,8 @@ public class DataAccessProduct : IDataAccessProduct
                                          ProductName = u.Product.ProductName,
                                          Description = u.Product.Description ?? string.Empty,
                                          CurrentStock = u.CurrentStock,
+                                         Apartado = u.Apartado,
+                                         StockReal = u.StockReal,
                                          LastUpdateDate = u.LastUpdateDate
                                      })
                                     .ToListAsync();
@@ -370,6 +375,50 @@ public class DataAccessProduct : IDataAccessProduct
         }
     }
 
+    public async Task<StockRealResponse> GetStockReal(int userId)
+    {
+        StockRealResponse response = new();
+
+        try
+        {
+            var stock = await Context.TInventory
+                                     .Include(u => u.Product)
+                                     .Where(u => u.StockReal > 0)
+                                     .Select(u => new StockRealDTO
+                                     {
+                                         ProductId = u.ProductId,
+                                         ProductName = u.Product.ProductName,
+                                         Price = u.Product.Price ?? 0,
+                                         StockReal = u.StockReal ?? 0,
+                                     })
+                                    .ToListAsync();
+
+            response.Result = stock;
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "GetStockReal",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            return new StockRealResponse
+            {
+                Result = null,
+                Error = new ErrorDTO
+                {
+                    Code = 500,
+                    Message = $"Error Exception: {ex.InnerException}"
+                }
+            };
+        }
+    }
+    
     public async Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId) {
         DetailsEntryResponse response = new();
 

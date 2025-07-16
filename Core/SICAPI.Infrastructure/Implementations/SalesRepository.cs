@@ -1,45 +1,35 @@
-﻿using SICAPI.Data.SQL.Interfaces;
+﻿
+using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
-using SICAPI.Models.Request.Client;
-using SICAPI.Models.Request.Warehouse;
+using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
-using SICAPI.Models.Response.Client;
+using SICAPI.Models.Response.Sales;
 
 namespace SICAPI.Infrastructure.Implementations;
 
-public class ClientRepository : IClientRepository
+public class SalesRepository : ISalesRepository
 {
-    private readonly IDataAccessClient IDataAccessClient;
+    private readonly IDataAccessSales IDataAccessSales;
     private IDataAccessLogs IDataAccessLogs;
 
-    public ClientRepository(IDataAccessClient iDataAccessClient, IDataAccessLogs iDataAccessLogs)
+    public SalesRepository(IDataAccessSales iDataAccessSales, IDataAccessLogs iDataAccessLogs)
     {
-        IDataAccessClient = iDataAccessClient;
+        IDataAccessSales = iDataAccessSales;
         IDataAccessLogs = iDataAccessLogs;
     }
 
-    public Task<ReplyResponse> CreateClient(CreateClientRequest request, int userId)
+    public async Task<ReplyResponse> CreateSale(CreateSaleRequest request, int userId)
     {
-        return ExecuteWithLogging(() => IDataAccessClient.CreateClient(request, userId), "CreateClient", userId);
+        return await ExecuteWithLogging(() => IDataAccessSales.CreateSale(request, userId), "CreateSale", userId);
     }
 
-    public Task<ReplyResponse> UpdateClient(UpdateClientRequest request, int userId)
+    public async Task<SalesResponse> GetAllSalesByStatus(SaleByStatusRequest request, int userId)
     {
-        return ExecuteWithLogging(() => IDataAccessClient.UpdateClient(request, userId), "UpdateClient", userId);
-    }
-
-    public Task<ReplyResponse> DeactivateClient(ActivateRequest request, int userId)
-    {
-        return ExecuteWithLogging(() => IDataAccessClient.DeactivateClient(request, userId), "DeactivateClient", userId);
-    }
-
-    public async Task<ClientsResponse> GetAllClients(int userId)
-    {
-        ClientsResponse response = new();
+        SalesResponse response = new();
         try
         {
-            response = await IDataAccessClient.GetAllClients(userId);
+            response = await IDataAccessSales.GetAllSalesByStatus(request, userId);
 
             return response;
         }
@@ -48,8 +38,8 @@ public class ClientRepository : IClientRepository
             var log = new LogsDTO
             {
                 IdUser = 1,
-                Module = "SICAPI-ClientRepository",
-                Action = "GetAllClients",
+                Module = "SICAPI-SalesRepository",
+                Action = "GetAllSalesByStatus",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"InnerException: {ex.InnerException?.Message}"
             };
@@ -65,12 +55,17 @@ public class ClientRepository : IClientRepository
         }
     }
 
-    public async Task<ClientsByUserResponse> GetClientsByUser(int userId)
+    public async Task<DetailsSaleResponse> DetailsSaleBySaleId(DetailsSaleRequest request, int UserId)
     {
-        ClientsByUserResponse response = new();
+        return await ExecuteWithLogging(() => IDataAccessSales.DetailsSaleBySaleId(request, UserId), "DetailsSaleBySaleId", UserId);
+    }
+
+    public async Task<SalesStatusResponse> GetAllSalesStatus(int userId)
+    {
+        SalesStatusResponse response = new();
         try
         {
-            response = await IDataAccessClient.GetClientsByUser(userId);
+            response = await IDataAccessSales.GetAllSalesStatus(userId);
 
             return response;
         }
@@ -79,8 +74,8 @@ public class ClientRepository : IClientRepository
             var log = new LogsDTO
             {
                 IdUser = 1,
-                Module = "SICAPI-ClientRepository",
-                Action = "ClientsByUserResponse",
+                Module = "SICAPI-SalesRepository",
+                Action = "GetAllSalesStatus",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"InnerException: {ex.InnerException?.Message}"
             };
@@ -95,6 +90,12 @@ public class ClientRepository : IClientRepository
             return response;
         }
     }
+
+    public async Task<ReplyResponse> AssignDeliveryUser(AssignDeliveryUserRequest request, int userId)
+    => await ExecuteWithLogging(() => IDataAccessSales.AssignDeliveryUser(request, userId), "AssignDeliveryUser", userId);
+
+    public async Task<ReplyResponse> UpdateSaleStatus(UpdateSaleStatusRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.UpdateSaleStatus(request, userId), "UpdateSaleStatus", userId);
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
@@ -110,7 +111,7 @@ public class ClientRepository : IClientRepository
             var log = new LogsDTO
             {
                 IdUser = userId,
-                Module = "SICAPI-ClientRepository",
+                Module = "SICAPI-SalesRepository",
                 Action = actionName,
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"InnerException: {ex.InnerException?.Message}"

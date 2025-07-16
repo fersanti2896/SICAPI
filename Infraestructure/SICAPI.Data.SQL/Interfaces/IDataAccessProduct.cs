@@ -1,5 +1,4 @@
-﻿using SICAPI.Models.Request.Supplier;
-using SICAPI.Models.Request.Warehouse;
+﻿using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Products;
 using SICAPI.Models.Response.Warehouse;
@@ -14,5 +13,6 @@ public interface IDataAccessProduct
     Task<ReplyResponse> CreateFullEntry(CreateEntryRequest request, int userId);
     Task<ProductsResponse> GetAllProducts(int userId);
     Task<StockResponse> GetStock(int userId);
+    Task<StockRealResponse> GetStockReal(int userId);
     Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId);
 }

@@ -11,4 +11,5 @@ public interface IDataAccessClient
     Task<ReplyResponse> UpdateClient(UpdateClientRequest request, int userId);
     Task<ClientsResponse> GetAllClients(int userId);
     Task<ReplyResponse> DeactivateClient(ActivateRequest request, int userId);
+    Task<ClientsByUserResponse> GetClientsByUser(int userId);
 }

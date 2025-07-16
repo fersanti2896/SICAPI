@@ -104,4 +104,20 @@ public class UserController : Controller
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Información de Credito de un usuario
+    /// </summary>
+    /// <returns></returns>
+    [Authorize]
+    [HttpGet]
+    [Route("CreditInfo")]
+    public async Task<IActionResult> CreditInfo()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IUserRepository.CreditInfo(userId);
+
+        return Ok(result);
+    }
 }
