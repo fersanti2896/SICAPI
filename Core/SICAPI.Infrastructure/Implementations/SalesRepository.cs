@@ -97,6 +97,40 @@ public class SalesRepository : ISalesRepository
     public async Task<ReplyResponse> UpdateSaleStatus(UpdateSaleStatusRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessSales.UpdateSaleStatus(request, userId), "UpdateSaleStatus", userId);
 
+    public async Task<SalesPendingPaymentResponse> GetSalesPendingPayment(int userId)
+    {
+        SalesPendingPaymentResponse response = new();
+        try
+        {
+            response = await IDataAccessSales.GetSalesPendingPayment(userId);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var log = new LogsDTO
+            {
+                IdUser = 1,
+                Module = "SICAPI-SalesRepository",
+                Action = "GetSalesPendingPayment",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            };
+            await IDataAccessLogs.Create(log);
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = ex.Message
+            };
+
+            return response;
+        }
+    }
+
+    public async Task<ReplyResponse> ApplyPayment(ApplyPaymentRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.ApplyPayment(request, userId), "ApplyPayment", userId);
+
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
         T response = new();

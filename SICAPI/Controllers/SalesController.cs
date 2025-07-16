@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SICAPI.Infrastructure.Implementations;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.Request.Sales;
 
@@ -113,5 +114,34 @@ public class SalesController : ControllerBase
 
         return result.Error != null ? BadRequest(result) : Ok(result);
     }
+
+    /// <summary>
+    /// Listado de tickets para cobranza
+    /// </summary>
+    /// <returns></returns>
+    [HttpGet]
+    [Route("GetSalesPendingPayment")]
+    public async Task<IActionResult> GetSalesPendingPayment()
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ISalesRepository.GetSalesPendingPayment(userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
+    /// Genera pago de un ticket
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("ApplyPayment")]
+    public async Task<IActionResult> ApplyPayment(ApplyPaymentRequest request)
+    {
+        int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await ISalesRepository.ApplyPayment(request, userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
 }
-    

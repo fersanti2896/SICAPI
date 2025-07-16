@@ -12,4 +12,6 @@ public interface ISalesRepository
     Task<SalesStatusResponse> GetAllSalesStatus(int UserId);
     Task<ReplyResponse> AssignDeliveryUser(AssignDeliveryUserRequest request, int userId);
     Task<ReplyResponse> UpdateSaleStatus(UpdateSaleStatusRequest request, int userId);
+    Task<SalesPendingPaymentResponse> GetSalesPendingPayment(int userId);
+    Task<ReplyResponse> ApplyPayment(ApplyPaymentRequest request, int userId);
 }

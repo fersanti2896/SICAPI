@@ -18,6 +18,10 @@ public class TSales : TDataGeneric
     public int SaleStatusId { get; set; }            // Estatus actual del ticket
     public int? DeliveryUserId { get; set; }
     public string? Comments { get; set; }
+    public decimal AmountPaid { get; set; } = 0;
+    public decimal AmountPending { get; set; } = 0;
+    public int PaymentStatusId { get; set; }
+
 
 
     [ForeignKey("ClientId")]
@@ -33,4 +37,7 @@ public class TSales : TDataGeneric
     public virtual TUsers? DeliveryUser { get; set; }
 
     public virtual ICollection<TSalesDetail>? SaleDetails { get; set; }
+
+    [ForeignKey("PaymentStatusId")]
+    public virtual TPaymentStatuses? PaymentStatus { get; set; }
 }

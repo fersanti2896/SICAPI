@@ -39,7 +39,10 @@ public class DataAccessSales : IDataAccessSales
                 SaleStatusId = 2, // En proceso
                 CreateDate = DateTime.Now,
                 CreateUser = userId,
-                Status = 1
+                Status = 1,
+                PaymentStatusId = 1,
+                AmountPaid = 0,
+                AmountPending = request.TotalAmount
             };
 
             Context.TSales.Add(sale);
@@ -110,7 +113,7 @@ public class DataAccessSales : IDataAccessSales
             response.Result = new ReplyDTO
             {
                 Status = true,
-                Msg = "Venta registrada y créditos actualizados correctamente"
+                Msg = sale.SaleId.ToString()
             };
         }
         catch (Exception ex)
@@ -332,6 +335,136 @@ public class DataAccessSales : IDataAccessSales
             {
                 Module = "SICAPI-DataAccessSales",
                 Action = "UpdateSaleStatus",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<SalesPendingPaymentResponse> GetSalesPendingPayment(int userId)
+    {
+        var response = new SalesPendingPaymentResponse();
+
+        try
+        {
+            var sales = await Context.TSales
+                .Include(s => s.Client)
+                .Include(s => s.SaleStatus)
+                .Include(s => s.PaymentStatus)
+                .Where(s =>
+                    new[] { 2, 3, 4, 5 }.Contains(s.SaleStatusId) &&
+                    new[] { 1, 2 }.Contains(s.PaymentStatusId) &&
+                    s.Status == 1)
+                .Select(s => new SalesPendingPaymentDTO
+                {
+                    SaleId = s.SaleId,
+                    SaleDate = s.SaleDate,
+                    TotalAmount = s.TotalAmount,
+                    AmountPaid = s.AmountPaid,
+                    AmountPending = s.AmountPending,
+                    SaleStatus = s.SaleStatus.StatusName,
+                    PaymentStatus = s.PaymentStatus.Name,
+                    ClientId = s.Client.ClientId,
+                    BusinessName = s.Client.BusinessName
+                })
+                .OrderByDescending(s => s.SaleDate)
+                .ToListAsync();
+
+
+            response.Result = sales;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO { Code = 500, Message = $"Error: {ex.Message}" };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "GetSalesPendingPayment",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<ReplyResponse> ApplyPayment(ApplyPaymentRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+        using var transaction = await Context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
+            if (sale == null)
+                throw new Exception("Venta no encontrada");
+
+            if (request.Amount <= 0 || request.Amount > sale.AmountPending)
+                throw new Exception("Monto de pago inválido");
+
+            // Registrar pago
+            var payment = new TPayments
+            {
+                SaleId = request.SaleId,
+                Amount = request.Amount,
+                PaymentMethod = request.Method,
+                Comments = request.Comments,
+                CreateDate = DateTime.Now,
+                CreateUser = userId,
+                Status = 1
+            };
+            Context.TPayments.Add(payment);
+
+            // Actualizar venta
+            sale.AmountPaid += request.Amount;
+            sale.AmountPending -= request.Amount;
+            sale.PaymentStatusId = sale.AmountPaid == 0 ? 1 : sale.AmountPaid < sale.TotalAmount ? 2 : 3;
+            sale.UpdateDate = DateTime.Now;
+            sale.UpdateUser = userId;
+
+            // Actualizar crédito del cliente
+            var client = await Context.TClients.FirstOrDefaultAsync(c => c.ClientId == sale.ClientId);
+            if (client != null)
+            {
+                client.AvailableCredit += request.Amount;
+                client.UpdateDate = DateTime.Now;
+                client.UpdateUser = userId;
+            }
+
+            // Actualizar crédito del vendedor
+            var seller = await Context.TUsers.FirstOrDefaultAsync(u => u.UserId == sale.UserId);
+            if (seller != null)
+            {
+                seller.AvailableCredit += request.Amount;
+                seller.UpdateDate = DateTime.Now;
+                seller.UpdateUser = userId;
+            }
+
+            await Context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Pago aplicado correctamente"
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al aplicar pago: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "ApplyPayment",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
             });
