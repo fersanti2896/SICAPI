@@ -15,6 +15,8 @@ public class DataAccessSales : IDataAccessSales
     private IDataAccessLogs IDataAccessLogs;
     private readonly IConfiguration _configuration;
     public AppDbContext Context { get; set; }
+    private static readonly TimeZoneInfo _cdmxZone = TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City");
+    private static DateTime NowCDMX => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _cdmxZone);
 
     public DataAccessSales(AppDbContext appDbContext, IDataAccessLogs iDataAccessLogs, IConfiguration configurations)
     {
@@ -34,10 +36,10 @@ public class DataAccessSales : IDataAccessSales
             {
                 ClientId = request.ClientId,
                 UserId = userId,
-                SaleDate = DateTime.Now,
+                SaleDate = NowCDMX,
                 TotalAmount = request.TotalAmount,
                 SaleStatusId = 2, // En proceso
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 CreateUser = userId,
                 Status = 1,
                 PaymentStatusId = 1,
@@ -65,7 +67,7 @@ public class DataAccessSales : IDataAccessSales
 
                 inventory.Apartado = (inventory.Apartado ?? 0) + product.Quantity;
                 inventory.StockReal = (inventory.CurrentStock - inventory.Apartado) ?? 0;
-                inventory.LastUpdateDate = DateTime.Now;
+                inventory.LastUpdateDate = NowCDMX;
                 inventory.UpdateUser = userId;
 
                 var saleDetail = new TSalesDetail
@@ -75,7 +77,7 @@ public class DataAccessSales : IDataAccessSales
                     Quantity = product.Quantity,
                     UnitPrice = product.UnitPrice,
                     SubTotal = product.Quantity * product.UnitPrice,
-                    CreateDate = DateTime.Now,
+                    CreateDate = NowCDMX,
                     CreateUser = userId,
                     Status = 1
                 };
@@ -92,7 +94,7 @@ public class DataAccessSales : IDataAccessSales
                 throw new Exception("El cliente no tiene crédito suficiente");
 
             client.AvailableCredit -= sale.TotalAmount;
-            client.UpdateDate = DateTime.Now;
+            client.UpdateDate = NowCDMX;
             client.UpdateUser = userId;
 
             // ACTUALIZAR CRÉDITO DEL VENDEDOR
@@ -104,7 +106,7 @@ public class DataAccessSales : IDataAccessSales
                 throw new Exception("El vendedor no tiene crédito suficiente para registrar esta venta");
 
             user.AvailableCredit -= sale.TotalAmount;
-            user.UpdateDate = DateTime.Now;
+            user.UpdateDate = NowCDMX;
             user.UpdateUser = userId;
 
             await Context.SaveChangesAsync();
@@ -285,7 +287,7 @@ public class DataAccessSales : IDataAccessSales
 
             sale.DeliveryUserId = request.DeliveryUserId;
             sale.UpdateUser = userId;
-            sale.UpdateDate = DateTime.Now;
+            sale.UpdateDate = NowCDMX;
             sale.SaleStatusId = 4;
 
             await Context.SaveChangesAsync();
@@ -321,7 +323,7 @@ public class DataAccessSales : IDataAccessSales
             sale.SaleStatusId = request.SaleStatusId;
             sale.Comments = request.Comments;
             sale.UpdateUser = userId;
-            sale.UpdateDate = DateTime.Now;
+            sale.UpdateDate = NowCDMX;
 
             await Context.SaveChangesAsync();
 
@@ -412,7 +414,7 @@ public class DataAccessSales : IDataAccessSales
                 Amount = request.Amount,
                 PaymentMethod = request.Method,
                 Comments = request.Comments,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 CreateUser = userId,
                 Status = 1
             };
@@ -422,7 +424,7 @@ public class DataAccessSales : IDataAccessSales
             sale.AmountPaid += request.Amount;
             sale.AmountPending -= request.Amount;
             sale.PaymentStatusId = sale.AmountPaid == 0 ? 1 : sale.AmountPaid < sale.TotalAmount ? 2 : 3;
-            sale.UpdateDate = DateTime.Now;
+            sale.UpdateDate = NowCDMX;
             sale.UpdateUser = userId;
 
             // Actualizar crédito del cliente
@@ -430,7 +432,7 @@ public class DataAccessSales : IDataAccessSales
             if (client != null)
             {
                 client.AvailableCredit += request.Amount;
-                client.UpdateDate = DateTime.Now;
+                client.UpdateDate = NowCDMX;
                 client.UpdateUser = userId;
             }
 
@@ -439,7 +441,7 @@ public class DataAccessSales : IDataAccessSales
             if (seller != null)
             {
                 seller.AvailableCredit += request.Amount;
-                seller.UpdateDate = DateTime.Now;
+                seller.UpdateDate = NowCDMX;
                 seller.UpdateUser = userId;
             }
 

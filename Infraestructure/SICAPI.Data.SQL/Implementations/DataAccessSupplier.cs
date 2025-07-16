@@ -15,6 +15,8 @@ public class DataAccessSupplier : IDataAccessSupplier
     private IDataAccessLogs IDataAccessLogs;
     private readonly IConfiguration _configuration;
     public AppDbContext Context { get; set; }
+    private static readonly TimeZoneInfo _cdmxZone = TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City");
+    private static DateTime NowCDMX => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _cdmxZone);
 
     public DataAccessSupplier(AppDbContext appDbContext, IDataAccessLogs iDataAccessLogs, IConfiguration configurations)
     {
@@ -40,7 +42,7 @@ public class DataAccessSupplier : IDataAccessSupplier
                 PaymentTerms = request.PaymentTerms,
                 Notes = request.Notes,
                 Status = 1,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 CreateUser = userId
             };
 
@@ -99,7 +101,7 @@ public class DataAccessSupplier : IDataAccessSupplier
             supplier.Address = request.Address;
             supplier.PaymentTerms = request.PaymentTerms;
             supplier.Notes = request.Notes;
-            supplier.UpdateDate = DateTime.Now;
+            supplier.UpdateDate = NowCDMX;
             supplier.UpdateUser = userId;
 
             await Context.SaveChangesAsync();
@@ -187,7 +189,7 @@ public class DataAccessSupplier : IDataAccessSupplier
             }
 
             supplier.Status = request.Status;
-            supplier.UpdateDate = DateTime.Now;
+            supplier.UpdateDate = NowCDMX;
             supplier.UpdateUser = userId;
 
             await Context.SaveChangesAsync();

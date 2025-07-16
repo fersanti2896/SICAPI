@@ -22,6 +22,8 @@ public class DataAccessUser : IDataAccessUser
     private IDataAccessLogs IDataAccessLogs;
     private readonly IConfiguration _configuration;
     public AppDbContext Context { get; set; }
+    private static readonly TimeZoneInfo _cdmxZone = TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City");
+    private static DateTime NowCDMX => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _cdmxZone);
 
     public DataAccessUser(AppDbContext appDbContext, IDataAccessLogs iDataAccessLogs, IConfiguration configurations)
     {
@@ -65,7 +67,7 @@ public class DataAccessUser : IDataAccessUser
                 AvailableCredit = request.AvailableCredit,
                 RoleId = request.RoleId,
                 Status = 1,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 CreateUser = 1
             };
 
@@ -126,7 +128,7 @@ public class DataAccessUser : IDataAccessUser
 
             var accessToken = GenerateJwtToken(user);
             var refreshToken = GenerateRefreshToken();
-            var expiration = DateTime.Now.AddDays(1);
+            var expiration = NowCDMX.AddDays(1);
 
             var newToken = new TRefreshTokens
             {
@@ -198,7 +200,7 @@ public class DataAccessUser : IDataAccessUser
         try
         {
             // Buscar refresh token válido en la BD
-            var storedToken = await Context.TRefreshTokens.FirstOrDefaultAsync(t => t.Token == request.RefreshToken && !t.IsRevoked && t.ExpirationDate > DateTime.UtcNow);
+            var storedToken = await Context.TRefreshTokens.FirstOrDefaultAsync(t => t.Token == request.RefreshToken && !t.IsRevoked && t.ExpirationDate > NowCDMX);
 
             if (storedToken is null)
             {
@@ -232,7 +234,7 @@ public class DataAccessUser : IDataAccessUser
             // Generar nuevos tokens
             var newAccessToken = GenerateJwtToken(user);
             var newRefreshToken = GenerateRefreshToken();
-            var newExpiration = DateTime.Now.AddDays(2);
+            var newExpiration = NowCDMX.AddDays(2);
 
             await Context.TRefreshTokens.AddAsync(new TRefreshTokens
             {
@@ -295,7 +297,7 @@ public class DataAccessUser : IDataAccessUser
             issuer: jwtSettings["Issuer"],
             audience: jwtSettings["Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(Convert.ToInt32(jwtSettings["ExpiryMinutes"])),
+            expires: NowCDMX.AddMinutes(Convert.ToInt32(jwtSettings["ExpiryMinutes"])),
             signingCredentials: creds
         );
 
@@ -368,7 +370,7 @@ public class DataAccessUser : IDataAccessUser
             }
 
             user.Status = request.Status;
-            user.UpdateDate = DateTime.Now;
+            user.UpdateDate = NowCDMX;
             user.UpdateUser = userId;
 
             await Context.SaveChangesAsync();

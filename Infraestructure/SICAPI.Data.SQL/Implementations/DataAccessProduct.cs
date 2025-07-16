@@ -15,6 +15,8 @@ public class DataAccessProduct : IDataAccessProduct
     private IDataAccessLogs IDataAccessLogs;
     private readonly IConfiguration _configuration;
     public AppDbContext Context { get; set; }
+    private static readonly TimeZoneInfo _cdmxZone = TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City");
+    private static DateTime NowCDMX => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _cdmxZone);
 
     public DataAccessProduct(AppDbContext appDbContext, IDataAccessLogs iDataAccessLogs, IConfiguration configurations)
     {
@@ -36,7 +38,7 @@ public class DataAccessProduct : IDataAccessProduct
                 Barcode = request.Barcode ?? null,
                 Category = request.Unit,
                 Price = request.Price,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 CreateUser = userId,
                 Status = 1
             };
@@ -90,7 +92,7 @@ public class DataAccessProduct : IDataAccessProduct
             product.Presentation = request.Presentation;
             product.Category = request.Unit;
             product.Price = request.Price;
-            product.UpdateDate = DateTime.Now;
+            product.UpdateDate = NowCDMX;
             product.UpdateUser = userId;
 
             await Context.SaveChangesAsync();
@@ -150,7 +152,7 @@ public class DataAccessProduct : IDataAccessProduct
                 UnitPrice = request.UnitPrice,
                 Unit = request.Unit,
                 Status = 1,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 CreateUser = userId
             };
 
@@ -194,11 +196,11 @@ public class DataAccessProduct : IDataAccessProduct
             {
                 SupplierId = request.SupplierId,
                 InvoiceNumber = request.InvoiceNumber,
-                EntryDate = DateTime.Now,
+                EntryDate = NowCDMX,
                 ExpectedPaymentDate = request.ExpectedPaymentDate,
                 TotalAmount = request.TotalAmount,
                 Observations = request.Observations,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 Status = 1,
                 CreateUser = userId
             };
@@ -219,7 +221,7 @@ public class DataAccessProduct : IDataAccessProduct
                     Lot = prod.Lot,
                     ExpirationDate = prod.ExpirationDate,
                     Status = 1,
-                    CreateDate = DateTime.Now,
+                    CreateDate = NowCDMX,
                     CreateUser = userId
                 };
 
@@ -230,8 +232,8 @@ public class DataAccessProduct : IDataAccessProduct
                 if (inventory != null)
                 {
                     inventory.CurrentStock += prod.Quantity;
-                    inventory.LastEntryDate = DateTime.Now;
-                    inventory.LastUpdateDate = DateTime.Now;
+                    inventory.LastEntryDate = NowCDMX;
+                    inventory.LastUpdateDate = NowCDMX;
                     inventory.UpdateUser = userId;
                     inventory.StockReal = inventory.CurrentStock - inventory.Apartado;
                 }
@@ -243,9 +245,9 @@ public class DataAccessProduct : IDataAccessProduct
                         CurrentStock = prod.Quantity,
                         Apartado = 0,
                         StockReal = prod.Quantity,
-                        LastEntryDate = DateTime.Now,
-                        LastUpdateDate = DateTime.Now,
-                        CreateDate = DateTime.Now,
+                        LastEntryDate = NowCDMX,
+                        LastUpdateDate = NowCDMX,
+                        CreateDate = NowCDMX,
                         CreateUser = userId,
                         Status = 1
                     };

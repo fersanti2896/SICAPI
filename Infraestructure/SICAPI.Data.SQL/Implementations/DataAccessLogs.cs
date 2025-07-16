@@ -8,6 +8,8 @@ namespace SICAPI.Data.SQL.Implementations;
 public class DataAccessLogs : IDataAccessLogs
 {
     public AppDbContext Context { get; set; }
+    private static readonly TimeZoneInfo _cdmxZone = TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City");
+    private static DateTime NowCDMX => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _cdmxZone);
 
     public DataAccessLogs(AppDbContext appDbContext)
     {
@@ -29,8 +31,8 @@ public class DataAccessLogs : IDataAccessLogs
                 CreateUser = logDTO.IdUser,
                 UpdateUser = logDTO.IdUser,
                 Status = 1,
-                CreateDate = DateTime.Now,
-                UpdateDate = DateTime.Now
+                CreateDate = NowCDMX,
+                UpdateDate = NowCDMX
             };
 
             Context.TLogs!.Add(log);

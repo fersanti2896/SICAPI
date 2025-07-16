@@ -16,6 +16,8 @@ public class DataAccessClient : IDataAccessClient
     private IDataAccessLogs IDataAccessLogs;
     private readonly IConfiguration _configuration;
     public AppDbContext Context { get; set; }
+    private static readonly TimeZoneInfo _cdmxZone = TimeZoneInfo.FindSystemTimeZoneById("America/Mexico_City");
+    private static DateTime NowCDMX => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, _cdmxZone);
 
     public DataAccessClient(AppDbContext appDbContext, IDataAccessLogs iDataAccessLogs, IConfiguration configurations)
     {
@@ -43,7 +45,7 @@ public class DataAccessClient : IDataAccessClient
                 PaymentDays = request.PaymentDays,
                 Notes = TextHelper.Capitalize(request.Notes),
                 IsBlocked = 0,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 Status = 1,
                 CreateUser = userId
             };
@@ -61,7 +63,7 @@ public class DataAccessClient : IDataAccessClient
                 Street = TextHelper.CapitalizeEachWord(request.Street),
                 ExtNbr = request.ExtNbr,
                 InnerNbr = request.InnerNbr,
-                CreateDate = DateTime.Now,
+                CreateDate = NowCDMX,
                 Status = 1,
                 CreateUser = userId
             };
@@ -129,7 +131,7 @@ public class DataAccessClient : IDataAccessClient
             client.Notes = TextHelper.Capitalize(request.Notes);
             client.PaymentDays = request.PaymentDays;
             client.CreditLimit = request.CreditLimit;
-            client.UpdateDate = DateTime.Now;
+            client.UpdateDate = NowCDMX;
             client.UpdateUser = userId;
 
             // Buscar dirección
@@ -145,7 +147,7 @@ public class DataAccessClient : IDataAccessClient
                 address.Street = TextHelper.CapitalizeEachWord(request.Street);
                 address.ExtNbr = request.ExtNbr;
                 address.InnerNbr = request.InnerNbr;
-                address.UpdateDate = DateTime.Now;
+                address.UpdateDate = NowCDMX;
                 address.UpdateUser = userId;
             }
             else
@@ -161,7 +163,7 @@ public class DataAccessClient : IDataAccessClient
                     Street = TextHelper.CapitalizeEachWord(request.Street),
                     ExtNbr = request.ExtNbr,
                     InnerNbr = request.InnerNbr,
-                    CreateDate = DateTime.Now,
+                    CreateDate = NowCDMX,
                     CreateUser = userId,
                     Status = 1
                 };
@@ -326,7 +328,7 @@ public class DataAccessClient : IDataAccessClient
             }
 
             client.Status = request.Status;
-            client.UpdateDate = DateTime.Now;
+            client.UpdateDate = NowCDMX;
             client.UpdateUser = userId;
 
             await Context.SaveChangesAsync();
