@@ -9,4 +9,5 @@ public class ProductDTO
     public string? Presentation { get; set; } // Caja, Frasco, Blíster
     public string? Unit { get; set; } // Unidad de medida (ej. pieza, caja, frasco)
     public decimal? Price { get; set; } // Unidad de medida (ej. pieza, caja, frasco)
+    public int Status { get; set; }
 }

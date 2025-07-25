@@ -104,6 +104,26 @@ public class WarehouseController : ControllerBase
     }
 
     /// <summary>
+    /// Activa/Desactiva Producto
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [Authorize]
+    [HttpPost]
+    [Route("DeactivateProduct")]
+    public async Task<IActionResult> DeactivateProduct(ActiveProductRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.DeactivateProduct(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Crea la relacion entre el producto y el proveedor
     /// </summary>
     /// <param name="request"></param>
@@ -153,6 +173,25 @@ public class WarehouseController : ControllerBase
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
         var result = await IProductRepository.FullEntryById(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Actualiza información de una nota de compra (precios de productos)
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("UpdateFullEntry")]
+    public async Task<IActionResult> UpdateFullEntry(UpdateEntryPricesRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IProductRepository.UpdateEntryPrices(request, userId);
 
         if (result.Error != null)
             return BadRequest(result);

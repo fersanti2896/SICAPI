@@ -137,6 +137,14 @@ public class ProductRepository : IProductRepository
         return ExecuteWithLogging(() => IDataAccessProduct.FullEntryById(request, userId), "FullEntryById", userId);
     }
 
+    public Task<ReplyResponse> UpdateEntryPrices(UpdateEntryPricesRequest request, int userId) {
+        return ExecuteWithLogging(() => IDataAccessProduct.UpdateEntryPrices(request, userId), "UpdateEntryPrices", userId);
+    }
+
+    public Task<ReplyResponse> DeactivateProduct(ActiveProductRequest request, int userId) {
+        return ExecuteWithLogging(() => IDataAccessProduct.DeactivateProduct(request, userId), "DeactivateProduct", userId);
+    }
+
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
         T response = new();

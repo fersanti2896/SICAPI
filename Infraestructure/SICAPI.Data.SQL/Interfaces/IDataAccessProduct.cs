@@ -15,4 +15,6 @@ public interface IDataAccessProduct
     Task<StockResponse> GetStock(int userId);
     Task<StockRealResponse> GetStockReal(int userId);
     Task<DetailsEntryResponse> FullEntryById(DetailsEntryRequest request, int userId);
+    Task<ReplyResponse> UpdateEntryPrices(UpdateEntryPricesRequest request, int userId);
+    Task<ReplyResponse> DeactivateProduct(ActiveProductRequest request, int userId);
 }

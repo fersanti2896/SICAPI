@@ -300,7 +300,8 @@ public class DataAccessProduct : IDataAccessProduct
                                             Barcode = u.Barcode,
                                             Unit = u.Category,
                                             Price = u.Price,
-                                            Description = u.Description
+                                            Description = u.Description,
+                                            Status = u.Status
                                         })
                                         .ToListAsync();
 
@@ -385,7 +386,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             var stock = await Context.TInventory
                                      .Include(u => u.Product)
-                                     .Where(u => u.StockReal > 0)
+                                     .Where(u => u.StockReal > 0 && u.Product.Status != 0)
                                      .Select(u => new StockRealDTO
                                      {
                                          ProductId = u.ProductId,
@@ -442,6 +443,7 @@ public class DataAccessProduct : IDataAccessProduct
 
             var detailsList = details.Select(d => new ProductsDetailsEntryDTO
             {
+                EntryDetailId = d.EntryDetailId,
                 ProductId = d.ProductId,
                 ProductName = d.Product?.ProductName ?? "Sin nombre",
                 Quantity = d.Quantity,
@@ -479,6 +481,121 @@ public class DataAccessProduct : IDataAccessProduct
                 Code = 500,
                 Message = $"Error al obtener los detalles de la nota de pedido: {ex.Message}"
             };
+        }
+
+        return response;
+    }
+
+    public async Task<ReplyResponse> UpdateEntryPrices(UpdateEntryPricesRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+        using var transaction = await Context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var entry = await Context.TEntradasAlmacen
+                                     .FirstOrDefaultAsync(e => e.EntryId == request.EntryId);
+
+            if (entry == null)
+                throw new Exception("Nota de entrada no encontrada");
+
+            decimal newTotal = 0;
+
+            foreach (var item in request.Products)
+            {
+                var detail = Context.TEntradaDetalle.FirstOrDefault(d => d.EntryDetailId == item.EntryDetailId);
+                if (detail == null)
+                    throw new Exception($"Detalle con ID {item.EntryDetailId} no encontrado");
+
+                detail.UnitPrice = item.UnitPrice;
+                detail.SubTotal = item.UnitPrice * detail.Quantity;
+                detail.UpdateDate = NowCDMX;
+                detail.UpdateUser = userId;
+
+                newTotal += detail.SubTotal;
+            }
+
+            entry.TotalAmount = newTotal;
+            entry.Observations = request.Observations;
+            entry.ExpectedPaymentDate = request.ExpectedPaymentDate;
+            entry.UpdateDate = NowCDMX;
+            entry.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Precios actualizados correctamente"
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al actualizar precios: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "UpdateEntryPrices",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<ReplyResponse> DeactivateProduct(ActiveProductRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+
+        try
+        {
+            var product = await Context.TProducts.FirstOrDefaultAsync(u => u.ProductId == request.ProductId);
+
+            if (product == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "Producto no encontrado"
+                };
+                return response;
+            }
+
+            product.Status = request.Status;
+            product.UpdateDate = NowCDMX;
+            product.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Msg = request.Status == 1 ? "Producto activado correctamente" : "Producto desactivado correctamente",
+                Status = true
+            };
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al desactivar producto: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessProduct",
+                Action = "DeactivateProduct",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
         }
 
         return response;

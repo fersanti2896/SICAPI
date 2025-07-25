@@ -318,19 +318,20 @@ public class DataAccessUser : IDataAccessUser
         UsersReponse response = new();
         try
         {
-            var users = await Context.TUsers.Include(u => u.Role)
-                                            .Select(u => new UserDTO
-                                            {
-                                                UserId = u.UserId,
-                                                FirstName = u.FirstName,
-                                                LastName = u.LastName,
-                                                MLastName = u.MLastName,
-                                                Username = u.Username,
-                                                Status = u.Status,
-                                                DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo",
-                                                Role = u.Role.Name
-                                            })
-                                            .ToListAsync();
+            var users = await Context.TUsers
+                                     .Include(u => u.Role)
+                                     .Select(u => new UserDTO
+                                     {
+                                        UserId = u.UserId,
+                                        FirstName = u.FirstName,
+                                        LastName = u.LastName,
+                                        MLastName = u.MLastName,
+                                        Username = u.Username,
+                                        Status = u.Status,
+                                        DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo",
+                                        Role = u.Role.Name
+                                     })
+                                     .ToListAsync();
 
             response.Result = users;
 
