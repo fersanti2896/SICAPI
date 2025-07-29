@@ -55,9 +55,9 @@ public class SalesRepository : ISalesRepository
         }
     }
 
-    public async Task<DetailsSaleResponse> DetailsSaleBySaleId(DetailsSaleRequest request, int UserId)
+    public async Task<DetailsSaleResponse> DetailsSaleBySaleId(DetailsSaleRequest request, int userId)
     {
-        return await ExecuteWithLogging(() => IDataAccessSales.DetailsSaleBySaleId(request, UserId), "DetailsSaleBySaleId", UserId);
+        return await ExecuteWithLogging(() => IDataAccessSales.DetailsSaleBySaleId(request, userId), "DetailsSaleBySaleId", userId);
     }
 
     public async Task<SalesStatusResponse> GetAllSalesStatus(int userId)
@@ -130,6 +130,15 @@ public class SalesRepository : ISalesRepository
 
     public async Task<ReplyResponse> ApplyPayment(ApplyPaymentRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessSales.ApplyPayment(request, userId), "ApplyPayment", userId);
+
+    public async Task<MovementsSaleResponse> MovementsSaleBySaleId(DetailsSaleRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.MovementsSaleBySaleId(request, userId), "MovementsSaleBySaleId", userId);
+
+    public async Task<SalesResponse> GetSalesByDeliveryId(SaleByStatusRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.GetSalesByDeliveryId(request, userId), "GetSalesByDeliveryId", userId);
+
+    public async Task<SalesByUserResponse> GetSalesByUser(SalesByUserRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.GetSalesByUser(request, userId), "GetSalesByUser", userId);
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {

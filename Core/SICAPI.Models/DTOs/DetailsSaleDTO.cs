@@ -12,4 +12,5 @@ public class DetailsSaleDTO
     public DateTime? ExpirationDate { get; set; }
     public DateTime CreateDate { get; set; }
     public string Vendedor { get; set; }
+    public string Repartidor { get; set; }
 }

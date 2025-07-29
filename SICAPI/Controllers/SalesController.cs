@@ -144,4 +144,53 @@ public class SalesController : ControllerBase
 
         return result.Error != null ? BadRequest(result) : Ok(result);
     }
+
+
+    /// <summary>
+    /// Servicio para ver los movimientos de una venta por la venta id
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("MovementsSaleBySaleId")]
+    public async Task<IActionResult> MovementsSaleBySaleId(DetailsSaleRequest request)
+    {
+        int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await ISalesRepository.MovementsSaleBySaleId(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Listado de tickets para estatus por propio (repartidor)
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("GetSalesByDeliveryId")]
+    public async Task<IActionResult> GetSalesByDeliveryId(SaleByStatusRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ISalesRepository.GetSalesByDeliveryId(request, userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Listado de tickets | ventas por un usuario con rango de fechas (por default 15 dias)
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("GetSalesByUser")]
+    public async Task<IActionResult> GetSalesByUser(SalesByUserRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ISalesRepository.GetSalesByUser(request, userId);
+
+        return Ok(result);
+    }
 }

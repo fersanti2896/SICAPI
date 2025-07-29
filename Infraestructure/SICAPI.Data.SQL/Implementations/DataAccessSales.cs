@@ -201,6 +201,8 @@ public class DataAccessSales : IDataAccessSales
                                        .Include(sd => sd.Product)
                                        .Include(sd => sd.Sale!)
                                        .ThenInclude(s => s.User) // Esto trae al vendedor
+                                       .Include(sd => sd.Sale!)
+                                       .ThenInclude(s => s.DeliveryUser) // Trae al repartidor
                                        .Where(sd => sd.SaleId == request.SaleId)
                                        .Select(sd => new DetailsSaleDTO
                                        {
@@ -213,7 +215,8 @@ public class DataAccessSales : IDataAccessSales
                                         Lot = sd.Lot,
                                         ExpirationDate = sd.ExpirationDate,
                                         CreateDate = sd.CreateDate,
-                                        Vendedor = (sd.Sale!.User!.FirstName + " " + (sd.Sale.User.LastName ?? "")).Trim()
+                                        Vendedor = (sd.Sale!.User!.FirstName + " " + (sd.Sale.User.LastName ?? "")).Trim(),
+                                        Repartidor = sd.Sale.DeliveryUser != null ? (sd.Sale.DeliveryUser.FirstName + " " + (sd.Sale.DeliveryUser.LastName ?? "") + " " + (sd.Sale.DeliveryUser.MLastName ?? "")).Trim() : "Sin Asignar"
                                        })
                                        .ToListAsync();
 
@@ -285,10 +288,16 @@ public class DataAccessSales : IDataAccessSales
             if (sale == null)
                 throw new Exception("Venta no encontrada");
 
+            if(!request.IsUpdated)
+            {
+                sale.CommentsDelivery = request.CommentsDelivery;
+            }
+
             sale.DeliveryUserId = request.DeliveryUserId;
             sale.UpdateUser = userId;
             sale.UpdateDate = NowCDMX;
             sale.SaleStatusId = 4;
+
 
             await Context.SaveChangesAsync();
 
@@ -316,12 +325,37 @@ public class DataAccessSales : IDataAccessSales
 
         try
         {
-            var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
+            var sale = await Context.TSales
+                                    .Include(s => s.SaleDetails)
+                                    .FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
+
             if (sale == null)
                 throw new Exception("Venta no encontrada");
 
+            if(request.SaleStatusId == 3)
+            {
+                sale.Comments = request.Comments; // Primer comentario para empaquetado
+
+                var productIds = sale.SaleDetails!.Select(d => d.ProductId).ToList();
+
+                var inventories = await Context.TInventory
+                                               .Where(i => productIds.Contains(i.ProductId))
+                                               .ToDictionaryAsync(i => i.ProductId);
+
+                foreach (var detail in sale.SaleDetails)
+                {
+                    if (inventories.TryGetValue(detail.ProductId, out var inventory))
+                    {
+                        inventory.CurrentStock -= detail.Quantity;
+                        inventory.Apartado = (inventory.Apartado ?? 0) - detail.Quantity;
+                        inventory.LastUpdateDate = NowCDMX;
+                        inventory.StockReal = inventory.CurrentStock - (inventory.Apartado ?? 0);
+                        inventory.UpdateUser = userId;
+                    }
+                }
+            }
+
             sale.SaleStatusId = request.SaleStatusId;
-            sale.Comments = request.Comments;
             sale.UpdateUser = userId;
             sale.UpdateDate = NowCDMX;
 
@@ -467,6 +501,157 @@ public class DataAccessSales : IDataAccessSales
             {
                 Module = "SICAPI-DataAccessSales",
                 Action = "ApplyPayment",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<MovementsSaleResponse> MovementsSaleBySaleId(DetailsSaleRequest request, int userId)
+    {
+        MovementsSaleResponse response = new();
+
+        try
+        {
+            var sale = await Context.TSales.Where(s => s.SaleId == request.SaleId)
+                                           .Select(s => new MovementsSaleDTO
+                                           {
+                                            SaleId = s.SaleId,
+                                            Comments = s.Comments,
+                                            CommentsDelivery = s.CommentsDelivery,
+                                            UpdateDate = s.UpdateDate
+                                           })
+                                           .FirstOrDefaultAsync();
+
+            if (sale == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "No se encontró la venta con el ID proporcionado."
+                };
+                return response;
+            }
+
+            response.Result = sale;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener detalles de la venta: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "MovementsSaleBySaleId",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<SalesResponse> GetSalesByDeliveryId(SaleByStatusRequest request, int userId)
+    {
+        SalesResponse response = new();
+
+        try
+        {
+            var limitDate = NowCDMX.Date.AddDays(-20);
+            var sales = await Context.TSales
+                                     .Where(s => s.SaleStatusId == request.SaleStatusId && s.DeliveryUserId == userId && s.CreateDate.Date >= limitDate)
+                                     .Include(s => s.Client)
+                                     .Include(s => s.SaleStatus)
+                                     .Include(s => s.User)
+                                     .Include(s => s.DeliveryUser) // Incluir repartidor
+                                     .Select(s => new SaleDTO
+                                     {
+                                         SaleId = s.SaleId,
+                                         ClientId = s.ClientId,
+                                         BusinessName = s.Client!.BusinessName ?? "",
+                                         SaleStatusId = s.SaleStatusId,
+                                         StatusName = s.SaleStatus!.StatusName,
+                                         TotalAmount = s.TotalAmount,
+                                         SaleDate = s.SaleDate,
+                                         Vendedor = s.User.FirstName + " " + (s.User.LastName ?? ""),
+                                         Repartidor = s.DeliveryUser != null
+                                             ? s.DeliveryUser.FirstName + " " + (s.DeliveryUser.LastName ?? "")
+                                             : "Sin asignar"
+                                     })
+                                     .ToListAsync();
+
+
+            response.Result = sales;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener ventas en transito: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "GetAllSalesByStatus",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<SalesByUserResponse> GetSalesByUser(SalesByUserRequest request, int userId)
+    {
+        SalesByUserResponse response = new();
+
+        try
+        {
+            var sales = await Context.TSales
+                                     .Where(s => s.UserId == userId &&
+                                                 s.CreateDate.Date >= request.StartDate.Date &&
+                                                 s.CreateDate.Date <= request.EndDate.Date)
+                                     .Include(s => s.Client)
+                                     .Include(s => s.SaleStatus)
+                                     .Include(s => s.PaymentStatus)
+                                     .Select(s => new SalesByUserDTO
+                                      {
+                                        SaleId = s.SaleId,
+                                        ClientId = s.ClientId,
+                                        BusinessName = s.Client!.BusinessName ?? "",
+                                        UserId = s.UserId,
+                                        SaleDate = s.SaleDate,
+                                        TotalAmount = s.TotalAmount,
+                                        SaleStatusId = s.SaleStatusId,
+                                        StatusName = s.SaleStatus!.StatusName,
+                                        PaymentStatusId = s.PaymentStatusId,
+                                        NamePayment = s.PaymentStatus!.Name
+                                      })
+                                     .OrderByDescending(s => s.SaleDate)
+                                     .ToListAsync();
+
+            response.Result = sales;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener ventas del usuario ({userId}): {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "GetSalesByUser",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
             });
