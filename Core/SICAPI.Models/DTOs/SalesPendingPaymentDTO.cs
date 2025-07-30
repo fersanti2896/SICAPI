@@ -12,4 +12,6 @@ public class SalesPendingPaymentDTO
     public string PaymentStatus { get; set; }
     public int ClientId { get; set; }
     public string BusinessName { get; set; }
+    public int SalesPersonId { get; set; }
+    public string SalesPerson { get; set; }
 }

@@ -386,27 +386,30 @@ public class DataAccessSales : IDataAccessSales
         try
         {
             var sales = await Context.TSales
-                .Include(s => s.Client)
-                .Include(s => s.SaleStatus)
-                .Include(s => s.PaymentStatus)
-                .Where(s =>
-                    new[] { 2, 3, 4, 5 }.Contains(s.SaleStatusId) &&
-                    new[] { 1, 2 }.Contains(s.PaymentStatusId) &&
-                    s.Status == 1)
-                .Select(s => new SalesPendingPaymentDTO
-                {
-                    SaleId = s.SaleId,
-                    SaleDate = s.SaleDate,
-                    TotalAmount = s.TotalAmount,
-                    AmountPaid = s.AmountPaid,
-                    AmountPending = s.AmountPending,
-                    SaleStatus = s.SaleStatus.StatusName,
-                    PaymentStatus = s.PaymentStatus.Name,
-                    ClientId = s.Client.ClientId,
-                    BusinessName = s.Client.BusinessName
-                })
-                .OrderByDescending(s => s.SaleDate)
-                .ToListAsync();
+                                     .Include(s => s.User)
+                                     .Include(s => s.Client)
+                                     .Include(s => s.SaleStatus)
+                                     .Include(s => s.PaymentStatus)
+                                     .Where(s =>
+                                        new[] { 2, 3, 4, 5 }.Contains(s.SaleStatusId) &&
+                                        new[] { 1, 2 }.Contains(s.PaymentStatusId) &&
+                                        s.Status == 1)
+                                     .Select(s => new SalesPendingPaymentDTO
+                                     {
+                                        SaleId = s.SaleId,
+                                        SaleDate = s.SaleDate,
+                                        TotalAmount = s.TotalAmount,
+                                        AmountPaid = s.AmountPaid,
+                                        AmountPending = s.AmountPending,
+                                        SaleStatus = s.SaleStatus.StatusName,
+                                        PaymentStatus = s.PaymentStatus.Name,
+                                        ClientId = s.Client.ClientId,
+                                        BusinessName = s.Client.BusinessName,
+                                        SalesPersonId = s.User.UserId,
+                                        SalesPerson = s.User.FirstName + " " + s.User.LastName
+                                     })
+                                     .OrderByDescending(s => s.SaleDate)
+                                     .ToListAsync();
 
 
             response.Result = sales;
@@ -615,28 +618,29 @@ public class DataAccessSales : IDataAccessSales
 
         try
         {
-            var sales = await Context.TSales
-                                     .Where(s => s.UserId == userId &&
-                                                 s.CreateDate.Date >= request.StartDate.Date &&
-                                                 s.CreateDate.Date <= request.EndDate.Date)
-                                     .Include(s => s.Client)
-                                     .Include(s => s.SaleStatus)
-                                     .Include(s => s.PaymentStatus)
-                                     .Select(s => new SalesByUserDTO
-                                      {
-                                        SaleId = s.SaleId,
-                                        ClientId = s.ClientId,
-                                        BusinessName = s.Client!.BusinessName ?? "",
-                                        UserId = s.UserId,
-                                        SaleDate = s.SaleDate,
-                                        TotalAmount = s.TotalAmount,
-                                        SaleStatusId = s.SaleStatusId,
-                                        StatusName = s.SaleStatus!.StatusName,
-                                        PaymentStatusId = s.PaymentStatusId,
-                                        NamePayment = s.PaymentStatus!.Name
-                                      })
-                                     .OrderByDescending(s => s.SaleDate)
-                                     .ToListAsync();
+            var query = Context.TSales.Where(s => s.UserId == userId && s.CreateDate.Date >= request.StartDate.Date && s.CreateDate.Date <= request.EndDate.Date);
+
+            // Aplica el filtro por SaleStatusId solo si es diferente de 20
+            if (request.SaleStatusId != 20)
+                query = query.Where(s => s.SaleStatusId == request.SaleStatusId);
+
+            var sales = await query.Include(s => s.Client)
+                                   .Include(s => s.SaleStatus)
+                                   .Include(s => s.PaymentStatus)
+                                   .Select(s => new SalesByUserDTO {
+                                    SaleId = s.SaleId,
+                                    ClientId = s.ClientId,
+                                    BusinessName = s.Client!.BusinessName ?? "",
+                                    UserId = s.UserId,
+                                    SaleDate = s.SaleDate,
+                                    TotalAmount = s.TotalAmount,
+                                    SaleStatusId = s.SaleStatusId,
+                                    StatusName = s.SaleStatus!.StatusName,
+                                    PaymentStatusId = s.PaymentStatusId,
+                                    NamePayment = s.PaymentStatus!.Name
+                                   })
+                                   .OrderByDescending(s => s.SaleDate)
+                                   .ToListAsync();
 
             response.Result = sales;
         }
