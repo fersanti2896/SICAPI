@@ -128,9 +128,6 @@ public class SalesRepository : ISalesRepository
         }
     }
 
-    public async Task<ReplyResponse> ApplyPayment(ApplyPaymentRequest request, int userId)
-        => await ExecuteWithLogging(() => IDataAccessSales.ApplyPayment(request, userId), "ApplyPayment", userId);
-
     public async Task<MovementsSaleResponse> MovementsSaleBySaleId(DetailsSaleRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessSales.MovementsSaleBySaleId(request, userId), "MovementsSaleBySaleId", userId);
 

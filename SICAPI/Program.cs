@@ -22,6 +22,7 @@ builder.Services.AddTransient<IProductRepository, ProductRepository>();
 builder.Services.AddTransient<IClientRepository, ClientRepository>();
 builder.Services.AddTransient<ICatalogsRepository, CatalogsRepository>();
 builder.Services.AddTransient<ISalesRepository, SalesRepository>();
+builder.Services.AddTransient<ICollectionRepository, CollectionRepository>();
 
 // Infraestructure
 builder.Services.AddTransient<IDataAccessUser, DataAccessUser>();
@@ -31,6 +32,7 @@ builder.Services.AddTransient<IDataAccessProduct, DataAccessProduct>();
 builder.Services.AddTransient<IDataAccessClient, DataAccessClient>();
 builder.Services.AddTransient<IDataAccessCatalogs, DataAccessCatalogs>();
 builder.Services.AddTransient<IDataAccessSales, DataAccessSales>();
+builder.Services.AddTransient<IDataAccessCollection, DataAccessCollection>();
 
 // Add services to the container.
 builder.Services.AddControllers();

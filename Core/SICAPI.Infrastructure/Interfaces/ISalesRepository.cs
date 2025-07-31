@@ -1,5 +1,4 @@
 ﻿using Azure.Core;
-using SICAPI.Models.Request.Catalogs;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
@@ -15,7 +14,6 @@ public interface ISalesRepository
     Task<ReplyResponse> AssignDeliveryUser(AssignDeliveryUserRequest request, int userId);
     Task<ReplyResponse> UpdateSaleStatus(UpdateSaleStatusRequest request, int userId);
     Task<SalesPendingPaymentResponse> GetSalesPendingPayment(int userId);
-    Task<ReplyResponse> ApplyPayment(ApplyPaymentRequest request, int userId);
     Task<MovementsSaleResponse> MovementsSaleBySaleId(DetailsSaleRequest request, int userId);
     Task<SalesResponse> GetSalesByDeliveryId(SaleByStatusRequest request, int userId);
     Task<SalesByUserResponse> GetSalesByUser(SalesByUserRequest request, int userId);

@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Catalogs;

@@ -430,88 +430,6 @@ public class DataAccessSales : IDataAccessSales
         return response;
     }
 
-    public async Task<ReplyResponse> ApplyPayment(ApplyPaymentRequest request, int userId)
-    {
-        var response = new ReplyResponse();
-        using var transaction = await Context.Database.BeginTransactionAsync();
-
-        try
-        {
-            var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
-            if (sale == null)
-                throw new Exception("Venta no encontrada");
-
-            if (request.Amount <= 0 || request.Amount > sale.AmountPending)
-                throw new Exception("Monto de pago inválido");
-
-            // Registrar pago
-            var payment = new TPayments
-            {
-                SaleId = request.SaleId,
-                Amount = request.Amount,
-                PaymentMethod = request.Method,
-                Comments = request.Comments,
-                CreateDate = NowCDMX,
-                CreateUser = userId,
-                Status = 1
-            };
-            Context.TPayments.Add(payment);
-
-            // Actualizar venta
-            sale.AmountPaid += request.Amount;
-            sale.AmountPending -= request.Amount;
-            sale.PaymentStatusId = sale.AmountPaid == 0 ? 1 : sale.AmountPaid < sale.TotalAmount ? 2 : 3;
-            sale.UpdateDate = NowCDMX;
-            sale.UpdateUser = userId;
-
-            // Actualizar crédito del cliente
-            var client = await Context.TClients.FirstOrDefaultAsync(c => c.ClientId == sale.ClientId);
-            if (client != null)
-            {
-                client.AvailableCredit += request.Amount;
-                client.UpdateDate = NowCDMX;
-                client.UpdateUser = userId;
-            }
-
-            // Actualizar crédito del vendedor
-            var seller = await Context.TUsers.FirstOrDefaultAsync(u => u.UserId == sale.UserId);
-            if (seller != null)
-            {
-                seller.AvailableCredit += request.Amount;
-                seller.UpdateDate = NowCDMX;
-                seller.UpdateUser = userId;
-            }
-
-            await Context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            response.Result = new ReplyDTO
-            {
-                Status = true,
-                Msg = "Pago aplicado correctamente"
-            };
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            response.Error = new ErrorDTO
-            {
-                Code = 500,
-                Message = $"Error al aplicar pago: {ex.Message}"
-            };
-
-            await IDataAccessLogs.Create(new LogsDTO
-            {
-                Module = "SICAPI-DataAccessSales",
-                Action = "ApplyPayment",
-                Message = $"Exception: {ex.Message}",
-                InnerException = $"Inner: {ex.InnerException?.Message}"
-            });
-        }
-
-        return response;
-    }
-
     public async Task<MovementsSaleResponse> MovementsSaleBySaleId(DetailsSaleRequest request, int userId)
     {
         MovementsSaleResponse response = new();
@@ -620,24 +538,29 @@ public class DataAccessSales : IDataAccessSales
         {
             var query = Context.TSales.Where(s => s.UserId == userId && s.CreateDate.Date >= request.StartDate.Date && s.CreateDate.Date <= request.EndDate.Date);
 
-            // Aplica el filtro por SaleStatusId solo si es diferente de 20
-            if (request.SaleStatusId != 20)
-                query = query.Where(s => s.SaleStatusId == request.SaleStatusId);
+            // Filtro por SaleStatusId si es válido y diferente de 20
+            if (request.SaleStatusId.HasValue && request.SaleStatusId.Value != 20)
+                query = query.Where(s => s.SaleStatusId == request.SaleStatusId.Value);
+
+            // Filtro por PaymentStatusId si es válido y diferente de 20
+            if (request.PaymentStatusId.HasValue && request.PaymentStatusId.Value != 20)
+                query = query.Where(s => s.PaymentStatusId == request.PaymentStatusId.Value);
 
             var sales = await query.Include(s => s.Client)
                                    .Include(s => s.SaleStatus)
                                    .Include(s => s.PaymentStatus)
-                                   .Select(s => new SalesByUserDTO {
-                                    SaleId = s.SaleId,
-                                    ClientId = s.ClientId,
-                                    BusinessName = s.Client!.BusinessName ?? "",
-                                    UserId = s.UserId,
-                                    SaleDate = s.SaleDate,
-                                    TotalAmount = s.TotalAmount,
-                                    SaleStatusId = s.SaleStatusId,
-                                    StatusName = s.SaleStatus!.StatusName,
-                                    PaymentStatusId = s.PaymentStatusId,
-                                    NamePayment = s.PaymentStatus!.Name
+                                   .Select(s => new SalesByUserDTO
+                                   {
+                                        SaleId = s.SaleId,
+                                        ClientId = s.ClientId,
+                                        BusinessName = s.Client!.BusinessName ?? "",
+                                        UserId = s.UserId,
+                                        SaleDate = s.SaleDate,
+                                        TotalAmount = s.TotalAmount,
+                                        SaleStatusId = s.SaleStatusId,
+                                        StatusName = s.SaleStatus!.StatusName,
+                                        PaymentStatusId = s.PaymentStatusId,
+                                        NamePayment = s.PaymentStatus!.Name
                                    })
                                    .OrderByDescending(s => s.SaleDate)
                                    .ToListAsync();
