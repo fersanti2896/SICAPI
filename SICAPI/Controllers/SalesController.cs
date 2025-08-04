@@ -115,21 +115,6 @@ public class SalesController : ControllerBase
     }
 
     /// <summary>
-    /// Listado de tickets para cobranza
-    /// </summary>
-    /// <returns></returns>
-    [HttpGet]
-    [Route("GetSalesPendingPayment")]
-    public async Task<IActionResult> GetSalesPendingPayment()
-    {
-        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
-
-        var result = await ISalesRepository.GetSalesPendingPayment(userId);
-
-        return result.Error != null ? BadRequest(result) : Ok(result);
-    }
-
-    /// <summary>
     /// Servicio para ver los movimientos de una venta por la venta id
     /// </summary>
     /// <param name="request"></param>

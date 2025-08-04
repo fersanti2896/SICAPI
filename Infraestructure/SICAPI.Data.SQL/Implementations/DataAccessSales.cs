@@ -379,57 +379,6 @@ public class DataAccessSales : IDataAccessSales
         return response;
     }
 
-    public async Task<SalesPendingPaymentResponse> GetSalesPendingPayment(int userId)
-    {
-        var response = new SalesPendingPaymentResponse();
-
-        try
-        {
-            var sales = await Context.TSales
-                                     .Include(s => s.User)
-                                     .Include(s => s.Client)
-                                     .Include(s => s.SaleStatus)
-                                     .Include(s => s.PaymentStatus)
-                                     .Where(s =>
-                                        new[] { 2, 3, 4, 5 }.Contains(s.SaleStatusId) &&
-                                        new[] { 1, 2 }.Contains(s.PaymentStatusId) &&
-                                        s.Status == 1)
-                                     .Select(s => new SalesPendingPaymentDTO
-                                     {
-                                        SaleId = s.SaleId,
-                                        SaleDate = s.SaleDate,
-                                        TotalAmount = s.TotalAmount,
-                                        AmountPaid = s.AmountPaid,
-                                        AmountPending = s.AmountPending,
-                                        SaleStatus = s.SaleStatus.StatusName,
-                                        PaymentStatus = s.PaymentStatus.Name,
-                                        ClientId = s.Client.ClientId,
-                                        BusinessName = s.Client.BusinessName,
-                                        SalesPersonId = s.User.UserId,
-                                        SalesPerson = s.User.FirstName + " " + s.User.LastName
-                                     })
-                                     .OrderByDescending(s => s.SaleDate)
-                                     .ToListAsync();
-
-
-            response.Result = sales;
-        }
-        catch (Exception ex)
-        {
-            response.Error = new ErrorDTO { Code = 500, Message = $"Error: {ex.Message}" };
-
-            await IDataAccessLogs.Create(new LogsDTO
-            {
-                Module = "SICAPI-DataAccessSales",
-                Action = "GetSalesPendingPayment",
-                Message = $"Exception: {ex.Message}",
-                InnerException = $"Inner: {ex.InnerException?.Message}"
-            });
-        }
-
-        return response;
-    }
-
     public async Task<MovementsSaleResponse> MovementsSaleBySaleId(DetailsSaleRequest request, int userId)
     {
         MovementsSaleResponse response = new();

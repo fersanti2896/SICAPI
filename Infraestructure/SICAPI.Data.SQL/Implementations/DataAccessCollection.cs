@@ -3,9 +3,11 @@ using Microsoft.Extensions.Configuration;
 using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
+using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Collection;
+using SICAPI.Models.Response.Sales;
 
 namespace SICAPI.Data.SQL.Implementations;
 
@@ -134,6 +136,187 @@ public class DataAccessCollection : IDataAccessCollection
             {
                 Module = "SICAPI-DataAccessCollection",
                 Action = "GetAllPaymentStatus",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<SalesPendingPaymentResponse> GetSalesPendingPayment(SalesPendingPaymentRequest request, int userId)
+    {
+        var response = new SalesPendingPaymentResponse();
+
+        try
+        {
+            var query = Context.TSales
+                           .Where(s => s.Status == 1 &&
+                                       new[] { 1, 2, 4 }.Contains(s.PaymentStatusId) &&
+                                       s.CreateDate.Date >= request.StartDate.Date &&
+                                       s.CreateDate.Date <= request.EndDate.Date);
+
+            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+                query = query.Where(s => s.ClientId == request.ClientId.Value);
+
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+                query = query.Where(s => s.UserId == request.SalesPersonId.Value);
+
+            if (request.SaleStatusId.HasValue && request.SaleStatusId.Value != 20)
+                query = query.Where(s => s.SaleStatusId == request.SaleStatusId.Value);
+
+            if (request.PaymentStatusId.HasValue && request.PaymentStatusId.Value != 20)
+                query = query.Where(s => s.PaymentStatusId == request.PaymentStatusId.Value);
+
+            var sales = await query.Include(s => s.User)
+                                   .Include(s => s.Client)
+                                   .Include(s => s.SaleStatus)
+                                   .Include(s => s.PaymentStatus)
+                                   .Select(s => new SalesPendingPaymentDTO
+                                   {
+                                        SaleId = s.SaleId,
+                                        SaleDate = s.SaleDate,
+                                        TotalAmount = s.TotalAmount,
+                                        AmountPaid = s.AmountPaid,
+                                        AmountPending = s.AmountPending,
+                                        SaleStatus = s.SaleStatus.StatusName,
+                                        PaymentStatusId = s.PaymentStatusId,
+                                        PaymentStatus = s.PaymentStatus.Name,
+                                        ClientId = s.Client.ClientId,
+                                        BusinessName = s.Client.BusinessName,
+                                        SalesPersonId = s.User.UserId,
+                                        SalesPerson = s.User.FirstName + " " + s.User.LastName
+                                   })
+                                   .OrderByDescending(s => s.SaleDate)
+                                   .ToListAsync();
+
+            response.Result = sales;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO { Code = 500, Message = $"Error: {ex.Message}" };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "GetSalesPendingPayment",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<SalesPendingPaymentResponse> GetSalesHistorical(SalesHistoricalRequest request, int userId)
+    {
+        var response = new SalesPendingPaymentResponse();
+
+        try
+        {
+            var query = Context.TSales
+                           .Where(s => s.Status == 1 && s.CreateDate.Date >= request.StartDate.Date && s.CreateDate.Date <= request.EndDate.Date);
+
+            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+                query = query.Where(s => s.ClientId == request.ClientId.Value);
+
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+                query = query.Where(s => s.UserId == request.SalesPersonId.Value);
+
+            if (request.SaleStatusId.HasValue && request.SaleStatusId.Value != 20)
+                query = query.Where(s => s.SaleStatusId == request.SaleStatusId.Value);
+
+            if (request.PaymentStatusId.HasValue && request.PaymentStatusId.Value != 20)
+                query = query.Where(s => s.PaymentStatusId == request.PaymentStatusId.Value);
+
+            var sales = await query.Include(s => s.User)
+                                   .Include(s => s.Client)
+                                   .Include(s => s.SaleStatus)
+                                   .Include(s => s.PaymentStatus)
+                                   .Select(s => new SalesPendingPaymentDTO
+                                   {
+                                       SaleId = s.SaleId,
+                                       SaleDate = s.SaleDate,
+                                       TotalAmount = s.TotalAmount,
+                                       AmountPaid = s.AmountPaid,
+                                       AmountPending = s.AmountPending,
+                                       SaleStatus = s.SaleStatus.StatusName,
+                                       PaymentStatusId = s.PaymentStatusId,
+                                       PaymentStatus = s.PaymentStatus.Name,
+                                       ClientId = s.Client.ClientId,
+                                       BusinessName = s.Client.BusinessName,
+                                       SalesPersonId = s.User.UserId,
+                                       SalesPerson = s.User.FirstName + " " + s.User.LastName
+                                   })
+                                   .OrderByDescending(s => s.SaleDate)
+                                   .ToListAsync();
+
+            response.Result = sales;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO { Code = 500, Message = $"Error: {ex.Message}" };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "GetSalesHistorical",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<SalesPendingPaymentResponse> GetSalesPaids(SalesHistoricalRequest request, int userId)
+    {
+        var response = new SalesPendingPaymentResponse();
+
+        try
+        {
+            var query = Context.TSales
+                           .Where(s => s.Status == 1 && s.PaymentStatusId == 3 && s.CreateDate.Date >= request.StartDate.Date && s.CreateDate.Date <= request.EndDate.Date);
+
+            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+                query = query.Where(s => s.ClientId == request.ClientId.Value);
+
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+                query = query.Where(s => s.UserId == request.SalesPersonId.Value);
+
+
+            var sales = await query.Include(s => s.User)
+                                   .Include(s => s.Client)
+                                   .Include(s => s.SaleStatus)
+                                   .Include(s => s.PaymentStatus)
+                                   .Select(s => new SalesPendingPaymentDTO
+                                   {
+                                       SaleId = s.SaleId,
+                                       SaleDate = s.SaleDate,
+                                       TotalAmount = s.TotalAmount,
+                                       AmountPaid = s.AmountPaid,
+                                       AmountPending = s.AmountPending,
+                                       SaleStatus = s.SaleStatus.StatusName,
+                                       PaymentStatusId = s.PaymentStatusId,
+                                       PaymentStatus = s.PaymentStatus.Name,
+                                       ClientId = s.Client.ClientId,
+                                       BusinessName = s.Client.BusinessName,
+                                       SalesPersonId = s.User.UserId,
+                                       SalesPerson = s.User.FirstName + " " + s.User.LastName
+                                   })
+                                   .OrderByDescending(s => s.SaleDate)
+                                   .ToListAsync();
+
+            response.Result = sales;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO { Code = 500, Message = $"Error: {ex.Message}" };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "GetSalesPaids",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
             });

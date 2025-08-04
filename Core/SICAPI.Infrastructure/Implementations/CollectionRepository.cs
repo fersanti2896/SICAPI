@@ -1,9 +1,11 @@
 ﻿using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
+using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Collection;
+using SICAPI.Models.Response.Sales;
 
 namespace SICAPI.Infrastructure.Implementations;
 
@@ -51,6 +53,15 @@ public class CollectionRepository : ICollectionRepository
             return response;
         }
     }
+
+    public async Task<SalesPendingPaymentResponse> GetSalesPendingPayment(SalesPendingPaymentRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetSalesPendingPayment(request, userId), "GetSalesPendingPayment", userId);
+
+    public async Task<SalesPendingPaymentResponse> GetSalesHistorical(SalesHistoricalRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetSalesHistorical(request, userId), "GetSalesHistorical", userId);
+
+    public async Task<SalesPendingPaymentResponse> GetSalesPaids(SalesHistoricalRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetSalesPaids(request, userId), "GetSalesPaids", userId);
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
