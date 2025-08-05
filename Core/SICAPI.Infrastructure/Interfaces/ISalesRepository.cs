@@ -1,4 +1,5 @@
 ﻿using Azure.Core;
+using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
@@ -16,4 +17,5 @@ public interface ISalesRepository
     Task<MovementsSaleResponse> MovementsSaleBySaleId(DetailsSaleRequest request, int userId);
     Task<SalesResponse> GetSalesByDeliveryId(SaleByStatusRequest request, int userId);
     Task<SalesByUserResponse> GetSalesByUser(SalesByUserRequest request, int userId);
+    Task<ReplyResponse> ConfirmReturnAndRevertStock(CancelSaleRequest request, int userId);
 }

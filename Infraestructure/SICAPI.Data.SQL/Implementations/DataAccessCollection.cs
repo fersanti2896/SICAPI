@@ -4,9 +4,11 @@ using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Collection;
+using SICAPI.Models.Request.Finance;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Collection;
+using SICAPI.Models.Response.Finance;
 using SICAPI.Models.Response.Sales;
 
 namespace SICAPI.Data.SQL.Implementations;
@@ -198,7 +200,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
-                Module = "SICAPI-DataAccessSales",
+                Module = "SICAPI-DataAccessCollection",
                 Action = "GetSalesPendingPayment",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
@@ -259,7 +261,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
-                Module = "SICAPI-DataAccessSales",
+                Module = "SICAPI-DataAccessCollection",
                 Action = "GetSalesHistorical",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
@@ -315,7 +317,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
-                Module = "SICAPI-DataAccessSales",
+                Module = "SICAPI-DataAccessCollection",
                 Action = "GetSalesPaids",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
@@ -324,4 +326,243 @@ public class DataAccessCollection : IDataAccessCollection
 
         return response;
     }
+
+    public async Task<ReplyResponse> CancelSaleWithComment(CancelSaleRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+
+        try
+        {
+            var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
+            if (sale == null)
+                throw new Exception("Venta no encontrada");
+
+            // Cambiar estatus a 'Cancelado pendiente de devolución' (estatus 6)
+            sale.SaleStatusId = 6;
+            sale.PaymentStatusId = 5;
+            sale.UpdateUser = userId;
+            sale.UpdateDate = NowCDMX;
+
+            // Guardar comentario
+            var comment = new TCancelledSalesComments
+            {
+                SaleId = sale.SaleId,
+                Comments = request.Comments,
+                Status = 1,
+                CreateUser = userId,
+                CreateDate = NowCDMX
+            };
+
+            Context.TCancelledSalesComments.Add(comment);
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Venta cancelada correctamente"
+            };
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO { Code = 500, Message = $"Error: {ex.Message}" };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessCollection",
+                Action = "CancelSaleWithComment",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<CancelledSaleCommentResponse> GetCancelledSaleComments(CancelledCommentsRequest request, int userId)
+    {
+        var response = new CancelledSaleCommentResponse();
+
+        try
+        {
+            var comments = await Context.TCancelledSalesComments
+                                        .Where(c => c.SaleId == request.SaleId && c.Status == 1)
+                                        .OrderByDescending(c => c.CreateDate)
+                                        .Select(c => new CancelledSaleCommentDTO
+                                        {
+                                            Comments = c.Comments,
+                                            CreateDate = c.CreateDate
+                                        })
+                                        .ToListAsync();
+
+            response.Result = comments;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener comentarios de cancelación: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessCollection",
+                Action = "GetCancelledSaleComments",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<ReplyResponse> CancelSaleByOmission(CancelSaleRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+
+        try
+        {
+            var sale = await Context.TSales
+                                    .Include(s => s.SaleDetails)
+                                    .Include(s => s.Client)
+                                    .Include(s => s.User)
+                                    .FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
+
+            if (sale == null)
+            {
+                response.Error = new ErrorDTO { Code = 404, Message = "Venta no encontrada" };
+                return response;
+            }
+
+            if (sale.SaleStatusId != 2 && sale.SaleStatusId != 3)
+            {
+                response.Error = new ErrorDTO { Code = 400, Message = "Solo se puede cancelar por omisión en estatus En Proceso (2) o Empaquetado (3)" };
+                return response;
+            }
+
+            var productIds = sale.SaleDetails!.Select(d => d.ProductId).ToList();
+
+            var inventories = await Context.TInventory
+                                           .Where(i => productIds.Contains(i.ProductId))
+                                           .ToDictionaryAsync(i => i.ProductId);
+
+            foreach (var detail in sale.SaleDetails)
+            {
+                if (inventories.TryGetValue(detail.ProductId, out var inventory))
+                {
+                    if (sale.SaleStatusId == 2)
+                        inventory.Apartado = (inventory.Apartado ?? 0) - detail.Quantity;
+                    else if (sale.SaleStatusId == 3)
+                    {
+                        inventory.CurrentStock += detail.Quantity;
+                        inventory.Apartado = (inventory.Apartado ?? 0) - detail.Quantity;
+                    }
+
+                    inventory.StockReal = inventory.CurrentStock - (inventory.Apartado ?? 0);
+                    inventory.LastUpdateDate = NowCDMX;
+                    inventory.UpdateUser = userId;
+                }
+            }
+
+            // Revertir crédito al cliente
+            if (sale.Client != null)
+            {
+                sale.Client.AvailableCredit += sale.TotalAmount;
+                sale.Client.UpdateDate = NowCDMX;
+                sale.Client.UpdateUser = userId;
+            }
+
+            // Revertir crédito al vendedor
+            if (sale.User != null)
+            {
+                sale.User.AvailableCredit += sale.TotalAmount;
+                sale.User.UpdateDate = NowCDMX;
+                sale.User.UpdateUser = userId;
+            }
+
+            // Guardar comentario
+            Context.TCancelledSalesComments.Add(new TCancelledSalesComments
+            {
+                SaleId = request.SaleId,
+                Comments = request.Comments,
+                CreateDate = NowCDMX,
+                CreateUser = userId,
+                Status = 1
+            });
+
+            // Cambiar estatus del ticket a 10 = Cancelado por omisión
+            sale.SaleStatusId = 10;
+            sale.PaymentStatusId = 5;
+            sale.UpdateDate = NowCDMX;
+            sale.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Cancelación por omisión completada. Stock y créditos revertidos correctamente."
+            };
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al cancelar por omisión: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessCollection",
+                Action = "CancelSaleByOmission",
+                Message = $"Exception: {ex.Message}",
+                InnerException = ex.InnerException?.Message
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<FinanceBuildResponse> GetFinanceSummaryAsync(FinanceBuildRequest request, int userId)
+    {
+        var response = new FinanceBuildResponse();
+
+        try
+        {
+            var summary = await Context.TPayments
+                                       .Where(p => p.Status == 1 &&
+                                                    p.PaymentDate.Date >= request.StartDate.Date &&
+                                                    p.PaymentDate.Date <= request.EndDate.Date)
+                                       .GroupBy(p => p.PaymentMethod)
+                                       .Select(g => new FinanceMethodTotalDTO
+                                       {
+                                        PaymentMethod = g.Key,
+                                        TotalAmount = g.Sum(p => p.Amount)
+                                       })
+                                       .ToListAsync();
+
+            response.Result = summary;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al generar el resumen financiero: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessFinance",
+                Action = "GetFinanceSummaryAsync",
+                Message = $"Excepción: {ex.Message}",
+                InnerException = ex.InnerException?.Message,
+                IdUser = userId
+            });
+        }
+
+        return response;
+    }
+
 }

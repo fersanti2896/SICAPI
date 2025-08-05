@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SICAPI.Infrastructure.Interfaces;
+using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
 
 namespace SICAPI.Controllers;
@@ -158,6 +159,21 @@ public class SalesController : ControllerBase
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
         var result = await ISalesRepository.GetSalesByUser(request, userId);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Confirma cancelación de ticket por parte de almacen y retorna todos los productos al stock
+    /// </summary>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("ConfirmCancellationSale")]
+    public async Task<IActionResult> ConfirmCancellationSale(CancelSaleRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ISalesRepository.ConfirmReturnAndRevertStock(request, userId);
 
         return Ok(result);
     }

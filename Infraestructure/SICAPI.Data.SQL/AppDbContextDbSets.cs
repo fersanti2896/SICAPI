@@ -23,4 +23,5 @@ public partial class AppDbContext
     public virtual DbSet<TSaleStatuses> TSaleStatuses { get; set; }
     public virtual DbSet<TPaymentStatuses> TPaymentStatuses { get; set; }
     public virtual DbSet<TPayments> TPayments { get; set; }
+    public virtual DbSet<TCancelledSalesComments> TCancelledSalesComments { get; set; }
 }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.Request.Collection;
+using SICAPI.Models.Request.Finance;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response.Collection;
 
@@ -79,6 +80,11 @@ public class CollectionController : ControllerBase
         return result.Error != null ? BadRequest(result) : Ok(result);
     }
 
+    /// <summary>
+    /// Listado de tickets para cobranza - pagados
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
     [HttpPost]
     [Route("GetSalesPaids")]
     public async Task<IActionResult> GetSalesPaids(SalesHistoricalRequest request)
@@ -86,6 +92,70 @@ public class CollectionController : ControllerBase
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
         var result = await ICollectionRepository.GetSalesPaids(request, userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
+    /// Marca ticket como Cancelado al 100% desde Cobranza para Devolución en Almacén
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("CancelSaleWithComment")]
+    public async Task<IActionResult> CancelSaleWithComment(CancelSaleRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ICollectionRepository.CancelSaleWithComment(request, userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
+    /// Marca ticket como Cancelado por Omision desde Cobranza
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("CancelSaleByOmission")]
+    public async Task<IActionResult> CancelSaleByOmission(CancelSaleRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ICollectionRepository.CancelSaleByOmission(request, userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene listado de comentarios de la cancelación de un ticket
+    /// </summary>
+    /// <param name="saleId"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("GetSaleCancelledComments")]
+    public async Task<IActionResult> GetSaleCancelledComments(CancelledCommentsRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ICollectionRepository.GetCancelledSaleComments(request, userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene compilado para finanzas
+    /// </summary>
+    /// <param name="saleId"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("GetFinanceSummaryAsync")]
+    public async Task<IActionResult> GetFinanceSummaryAsync(FinanceBuildRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ICollectionRepository.GetFinanceSummaryAsync(request, userId);
 
         return result.Error != null ? BadRequest(result) : Ok(result);
     }

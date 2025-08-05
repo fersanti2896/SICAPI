@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using SICAPI.Data.SQL.Entities;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
+using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
@@ -530,6 +531,92 @@ public class DataAccessSales : IDataAccessSales
                 Action = "GetSalesByUser",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<ReplyResponse> ConfirmReturnAndRevertStock(CancelSaleRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+
+        try
+        {
+            var sale = await Context.TSales
+                                    .Include(s => s.SaleDetails)
+                                    .Include(s => s.Client)
+                                    .Include(s => s.User)
+                                    .FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
+
+            if (sale == null)
+            {
+                response.Error = new ErrorDTO { Code = 404, Message = "Venta no encontrada" };
+
+                return response;
+            }
+
+            if (sale.SaleStatusId != 6) // Estatus 6 = Cancelado pendiente de devolución
+            {
+                response.Error = new ErrorDTO { Code = 400, Message = "Solo se pueden confirmar devoluciones pendientes" };
+
+                return response;
+            }
+
+            foreach (var detail in sale.SaleDetails!)
+            {
+                var inventory = await Context.TInventory.FirstOrDefaultAsync(i => i.ProductId == detail.ProductId);
+                if (inventory != null)
+                {
+                    inventory.CurrentStock += detail.Quantity;
+                    inventory.StockReal = inventory.CurrentStock - (inventory.Apartado ?? 0);
+                    inventory.LastUpdateDate = NowCDMX;
+                    inventory.UpdateUser = userId;
+                }
+            }
+
+            if (sale.Client != null)
+                sale.Client.AvailableCredit += sale.TotalAmount;
+
+            if (sale.User != null)
+                sale.User.AvailableCredit += sale.TotalAmount;
+
+            sale.SaleStatusId = 9; // Estatus 9 = Cancelado con devolución confirmada
+            sale.PaymentStatusId = 5;
+            sale.UpdateDate = NowCDMX;
+            sale.UpdateUser = userId;
+
+            Context.TCancelledSalesComments.Add(new TCancelledSalesComments
+            {
+                SaleId = request.SaleId,
+                Comments = request.Comments,
+                Status = 1,
+                CreateDate = NowCDMX,
+                CreateUser = userId
+            });
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Devolución confirmada y stock actualizado correctamente"
+            };
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al confirmar devolución: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "ConfirmReturnAndRevertStockAsync",
+                Message = $"Excepción: {ex.Message}",
+                InnerException = ex.InnerException?.Message
             });
         }
 

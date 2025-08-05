@@ -2,6 +2,7 @@
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
+using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
@@ -105,6 +106,9 @@ public class SalesRepository : ISalesRepository
 
     public async Task<SalesByUserResponse> GetSalesByUser(SalesByUserRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessSales.GetSalesByUser(request, userId), "GetSalesByUser", userId);
+
+    public async Task<ReplyResponse> ConfirmReturnAndRevertStock(CancelSaleRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.ConfirmReturnAndRevertStock(request, userId), "ConfirmReturnAndRevertStock", userId);
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {

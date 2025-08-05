@@ -2,9 +2,11 @@
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Collection;
+using SICAPI.Models.Request.Finance;
 using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Collection;
+using SICAPI.Models.Response.Finance;
 using SICAPI.Models.Response.Sales;
 
 namespace SICAPI.Infrastructure.Implementations;
@@ -62,6 +64,18 @@ public class CollectionRepository : ICollectionRepository
 
     public async Task<SalesPendingPaymentResponse> GetSalesPaids(SalesHistoricalRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessCollection.GetSalesPaids(request, userId), "GetSalesPaids", userId);
+
+    public async Task<ReplyResponse> CancelSaleWithComment(CancelSaleRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.CancelSaleWithComment(request, userId), "CancelSaleWithCommentAsync", userId);
+
+    public async Task<CancelledSaleCommentResponse> GetCancelledSaleComments(CancelledCommentsRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetCancelledSaleComments(request, userId), "GetCancelledSaleComments", userId);
+
+    public async Task<ReplyResponse> CancelSaleByOmission(CancelSaleRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.CancelSaleByOmission(request, userId), "CancelSaleByOmission", userId);
+
+    public async Task<FinanceBuildResponse> GetFinanceSummaryAsync(FinanceBuildRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetFinanceSummaryAsync(request, userId), "GetFinanceSummaryAsync", userId);
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
