@@ -51,6 +51,21 @@ public class CollectionController : ControllerBase
     }
 
     /// <summary>
+    /// Genera pago múltiple de varios tickets
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("ApplyMultiplePayments")]
+    public async Task<IActionResult> ApplyMultiplePayments(ApplyMultiplePaymentRequest request)
+    {
+        int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await ICollectionRepository.ApplyMultiplePayments(request, userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
     /// Listado de tickets para cobranza - historico
     /// </summary>
     /// <returns></returns>
@@ -158,5 +173,23 @@ public class CollectionController : ControllerBase
         var result = await ICollectionRepository.GetFinanceSummaryAsync(request, userId);
 
         return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
+    /// Servicio para ver los pagos de una venta por la venta id
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("PaymentsSaleBySaleId")]
+    public async Task<IActionResult> PaymentsSaleBySaleId(DetailsSaleRequest request)
+    {
+        int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await ICollectionRepository.PaymentsSaleBySaleId(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
     }
 }

@@ -12,7 +12,7 @@ public class TPayments : TDataGeneric
     public int SaleId { get; set; }
     public decimal Amount { get; set; }
     public string PaymentMethod { get; set; } = null!;
-    public DateTime PaymentDate { get; set; } = DateTime.Now;
+    public DateTime PaymentDate { get; set; }
     public string? Comments { get; set; }
 
 

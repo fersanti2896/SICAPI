@@ -12,4 +12,5 @@ public interface IUserRepository
     Task<UsersReponse> GetAllUsers(int userId);
     Task<ReplyResponse> DeactivateUser(ActivateUserRequest request, int userId);
     Task<UserInfoResponse> CreditInfo(int UserId);
+    Task<ReplyResponse> UpdateUser(UpdateUserRequest request, int userId);
 }

@@ -50,6 +50,7 @@ public class DataAccessCollection : IDataAccessCollection
                 PaymentMethod = request.Method,
                 Comments = request.Comments,
                 CreateDate = NowCDMX,
+                PaymentDate = request.PaymentDate ?? NowCDMX,
                 CreateUser = userId,
                 Status = 1
             };
@@ -565,4 +566,141 @@ public class DataAccessCollection : IDataAccessCollection
         return response;
     }
 
+    public async Task<ReplyResponse> ApplyMultiplePayments(ApplyMultiplePaymentRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+        using var transaction = await Context.Database.BeginTransactionAsync();
+
+        try
+        {
+            foreach (var saleDto in request.Sales)
+            {
+                var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == saleDto.SaleId);
+                if (sale == null)
+                    throw new Exception($"Venta no encontrada con ID {saleDto.SaleId}");
+
+                if (saleDto.Amount <= 0 || saleDto.Amount > sale.AmountPending)
+                    throw new Exception($"Monto inválido para la venta ID {saleDto.SaleId}");
+
+                // Registrar pago
+                var payment = new TPayments
+                {
+                    SaleId = sale.SaleId,
+                    Amount = saleDto.Amount,
+                    PaymentMethod = request.Method,
+                    Comments = request.Comments,
+                    PaymentDate = request.PaymentDate,
+                    CreateDate = NowCDMX,
+                    CreateUser = userId,
+                    Status = 1
+                };
+                Context.TPayments.Add(payment);
+
+                // Actualizar venta
+                sale.AmountPaid += saleDto.Amount;
+                sale.AmountPending -= saleDto.Amount;
+                sale.PaymentStatusId = sale.AmountPaid == 0 ? 1 : sale.AmountPaid < sale.TotalAmount ? 2 : 3;
+                sale.UpdateDate = NowCDMX;
+                sale.UpdateUser = userId;
+
+                // Actualizar crédito del cliente
+                var client = await Context.TClients.FirstOrDefaultAsync(c => c.ClientId == sale.ClientId);
+                if (client != null)
+                {
+                    client.AvailableCredit += saleDto.Amount;
+                    client.UpdateDate = NowCDMX;
+                    client.UpdateUser = userId;
+                }
+
+                // Actualizar crédito del vendedor
+                var seller = await Context.TUsers.FirstOrDefaultAsync(u => u.UserId == sale.UserId);
+                if (seller != null)
+                {
+                    seller.AvailableCredit += saleDto.Amount;
+                    seller.UpdateDate = NowCDMX;
+                    seller.UpdateUser = userId;
+                }
+            }
+
+            await Context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Pagos aplicados correctamente"
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al aplicar pagos: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessCollection",
+                Action = "ApplyMultiplePayments",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<PaymentsSaleResponse> PaymentsSaleBySaleId(DetailsSaleRequest request, int userId)
+    {
+        PaymentsSaleResponse response = new();
+
+        try
+        {
+            var sale = await Context.TPayments
+                                .Where(p => p.SaleId == request.SaleId)
+                                .Join(Context.TUsers,
+                                      payment => payment.CreateUser,
+                                      user => user.UserId,
+                                      (payment, user) => new PaymentsSaleDTO
+                                      {
+                                          PaymentDate = payment.PaymentDate,
+                                          Comments = payment.Comments ?? "",
+                                          Amount = payment.Amount,
+                                          Username = user.FirstName + " " + user.LastName
+                                      })
+                                .ToListAsync();
+
+            if (sale == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "No se encontró la venta con el ID proporcionado."
+                };
+                return response;
+            }
+
+            response.Result = sale;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener los pagos de la venta: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessCollecion",
+                Action = "PaymentsSaleBySaleId",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
 }

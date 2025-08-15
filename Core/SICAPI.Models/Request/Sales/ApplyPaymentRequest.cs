@@ -8,4 +8,5 @@ public class ApplyPaymentRequest
     public decimal Amount { get; set; }
     public string Method { get; set; } = null!;
     public string? Comments { get; set; }
+    public DateTime? PaymentDate { get; set; }
 }

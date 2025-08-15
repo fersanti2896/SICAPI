@@ -120,4 +120,24 @@ public class UserController : Controller
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Servicio que crea un usuario con rol
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [Authorize]
+    [HttpPost]
+    [Route("UpdateUser")]
+    public async Task<IActionResult> UpdateUser(UpdateUserRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await IUserRepository.UpdateUser(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
 }

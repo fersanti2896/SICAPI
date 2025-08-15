@@ -329,7 +329,10 @@ public class DataAccessUser : IDataAccessUser
                                         Username = u.Username,
                                         Status = u.Status,
                                         DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo",
-                                        Role = u.Role.Name
+                                        Role = u.Role.Name,
+                                        Email = u.Email,
+                                        CreditLimit = u.CreditLimit,
+                                        RoleId = u.RoleId
                                      })
                                      .ToListAsync();
 
@@ -432,5 +435,97 @@ public class DataAccessUser : IDataAccessUser
                 }
             };
         }
+    }
+
+    public async Task<ReplyResponse> UpdateUser(UpdateUserRequest request, int userId)
+    {
+        ReplyResponse response = new();
+
+        try
+        {
+            var user = await Context.TUsers.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+            if (user == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "Usuario no encontrado."
+                };
+                return response;
+            }
+
+            // Validar si otro usuario ya tiene el mismo username
+            var usernameExists = await Context.TUsers
+                .AnyAsync(u => u.UserId != request.UserId && u.Username == request.Username);
+
+            if (usernameExists)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 400,
+                    Message = "Ya existe otro usuario con el mismo nombre de usuario."
+                };
+                return response;
+            }
+
+            // Actualizar campos
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            user.MLastName = request.MLastName ?? string.Empty;
+            user.Email = request.Email;
+            user.Username = request.Username;
+
+            if (request.CreditLimit != user.CreditLimit)
+            {
+                var usedCredit = user.CreditLimit - user.AvailableCredit;
+                user.CreditLimit = request.CreditLimit;
+                user.AvailableCredit = user.CreditLimit - usedCredit;
+
+                if (user.AvailableCredit < 0)
+                    user.AvailableCredit = 0; 
+            }
+            else
+            {
+                user.CreditLimit = request.CreditLimit;
+                user.AvailableCredit = request.AvailableCredit;
+            }
+
+            user.RoleId = request.RoleId;
+            user.UpdateDate = NowCDMX;
+            user.UpdateUser = userId;
+
+            if (!string.IsNullOrWhiteSpace(request.PasswordHash))
+            {
+                var normalizedPassword = request.PasswordHash.ToUpper();
+                user.PasswordHash = EncryptDecrypt.EncryptString(normalizedPassword);
+            }
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Usuario actualizado correctamente."
+            };
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessUser",
+                Action = "UpdateUserAsync",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = "Error al actualizar el usuario."
+            };
+        }
+
+        return response;
     }
 }

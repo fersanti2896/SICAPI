@@ -77,6 +77,12 @@ public class CollectionRepository : ICollectionRepository
     public async Task<FinanceBuildResponse> GetFinanceSummaryAsync(FinanceBuildRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessCollection.GetFinanceSummaryAsync(request, userId), "GetFinanceSummaryAsync", userId);
 
+    public async Task<ReplyResponse> ApplyMultiplePayments(ApplyMultiplePaymentRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.ApplyMultiplePayments(request, userId), "ApplyMultiplePayments", userId);
+
+    public async Task<PaymentsSaleResponse> PaymentsSaleBySaleId(DetailsSaleRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.PaymentsSaleBySaleId(request, userId), "PaymentsSaleBySaleId", userId);
+
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
         T response = new();

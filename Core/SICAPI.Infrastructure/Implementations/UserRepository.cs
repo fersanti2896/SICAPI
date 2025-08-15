@@ -120,6 +120,11 @@ public class UserRepository : IUserRepository
         return ExecuteWithLogging(() => IDataAccessUser.DeactivateUser(request, userId), "DeactivateUser", userId);
     }
 
+    public Task<ReplyResponse> UpdateUser(UpdateUserRequest request, int userId)
+    {
+        return ExecuteWithLogging(() => IDataAccessUser.UpdateUser(request, userId), "UpdateUser", userId);
+    }
+
     public async Task<UsersReponse> GetAllUsers(int userId)
     {
         UsersReponse response = new();
