@@ -1,5 +1,6 @@
 ﻿using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
+using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
 
@@ -17,4 +18,7 @@ public interface IDataAccessSales
     Task<SalesResponse> GetSalesByDeliveryId(SaleByStatusRequest request, int userId);
     Task<SalesByUserResponse> GetSalesByUser(SalesByUserRequest request, int userId);
     Task<ReplyResponse> ConfirmReturnAndRevertStock(CancelSaleRequest request, int userId);
+    Task<ReplyResponse> CreateCreditNoteRequest(CreditNoteRequest request, int userId);
+    Task<ReplyResponse> ConfirmCreditNoteByWarehouse(ConfirmCreditNoteRequest request, int userId);
+    Task<DetailsNoteCreditResponse> DetailsNoteCreditById(DetailsNoteCreditRequest request, int userId);
 }

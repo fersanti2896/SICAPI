@@ -4,6 +4,7 @@ using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
+using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
 
@@ -109,6 +110,15 @@ public class SalesRepository : ISalesRepository
 
     public async Task<ReplyResponse> ConfirmReturnAndRevertStock(CancelSaleRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessSales.ConfirmReturnAndRevertStock(request, userId), "ConfirmReturnAndRevertStock", userId);
+
+    public async Task<ReplyResponse> CreateCreditNoteRequest(CreditNoteRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.CreateCreditNoteRequest(request, userId), "CreateCreditNoteRequest", userId);
+
+    public async Task<ReplyResponse> ConfirmCreditNoteByWarehouse(ConfirmCreditNoteRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.ConfirmCreditNoteByWarehouse(request, userId), "ConfirmCreditNoteByWarehouse", userId);
+
+    public async Task<DetailsNoteCreditResponse> DetailsNoteCreditById(DetailsNoteCreditRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.DetailsNoteCreditById(request, userId), "DetailsNoteCreditById", userId);
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {

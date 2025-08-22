@@ -11,10 +11,12 @@ namespace SICAPI.Controllers;
 public class WarehouseController : ControllerBase
 {
     private readonly IProductRepository IProductRepository;
+    private readonly ISalesRepository ISalesRepository;
 
-    public WarehouseController(IProductRepository iProductRepository)
+    public WarehouseController(IProductRepository iProductRepository, ISalesRepository iSalesRepository)
     {
         IProductRepository = iProductRepository;
+        ISalesRepository = iSalesRepository;
     }
 
     /// <summary>
@@ -195,6 +197,26 @@ public class WarehouseController : ControllerBase
 
         if (result.Error != null)
             return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Almacen confirma la nota de crédito, suma stock, crédito del vendedor y cliente.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("ConfirmCreditNoteByWarehouse")]
+    public async Task<IActionResult> ConfirmCreditNoteByWarehouse(ConfirmCreditNoteRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await ISalesRepository.ConfirmCreditNoteByWarehouse(request, userId);
+
+
+        if (result.Error != null)
+            return BadRequest(result);
+
 
         return Ok(result);
     }

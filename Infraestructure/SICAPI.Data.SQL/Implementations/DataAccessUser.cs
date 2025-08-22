@@ -387,6 +387,15 @@ public class DataAccessUser : IDataAccessUser
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessUser",
+                Action = "DeactivateUser",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO
             {
                 Code = 500,
@@ -419,6 +428,7 @@ public class DataAccessUser : IDataAccessUser
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = UserId,
                 Module = "SICAPI-DataAccessUser",
                 Action = "CreditInfo",
                 Message = $"Exception: {ex.Message}",
@@ -513,6 +523,7 @@ public class DataAccessUser : IDataAccessUser
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessUser",
                 Action = "UpdateUserAsync",
                 Message = $"Exception: {ex.Message}",

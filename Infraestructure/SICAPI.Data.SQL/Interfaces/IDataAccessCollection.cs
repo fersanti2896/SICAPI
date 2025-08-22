@@ -21,4 +21,6 @@ public interface IDataAccessCollection
     Task<FinanceBuildResponse> GetFinanceSummaryAsync(FinanceBuildRequest request, int userId);
     Task<ReplyResponse> ApplyMultiplePayments(ApplyMultiplePaymentRequest request, int userId);
     Task<PaymentsSaleResponse> PaymentsSaleBySaleId(DetailsSaleRequest request, int userId);
+    Task<CreditNoteListResponse> GetCreditNotesByStatus(CreditNoteListRequest request, int userId);
+    Task<ReplyResponse> ApproveCreditNoteByCollection(ApproveCreditNoteRequest request, int userId);
 }

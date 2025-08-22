@@ -59,6 +59,7 @@ public class DataAccessSupplier : IDataAccessSupplier
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSupplier",
                 Action = "CreateSupplier",
                 Message = $"Exception: {ex.Message}",
@@ -116,6 +117,7 @@ public class DataAccessSupplier : IDataAccessSupplier
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSupplier",
                 Action = "UpdateSupplier",
                 Message = $"Exception: {ex.Message}",
@@ -157,6 +159,15 @@ public class DataAccessSupplier : IDataAccessSupplier
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessSupplier",
+                Action = "GetAllSuppliers",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             return new SuppliersResponse
             {
                 Result = null,
@@ -202,6 +213,15 @@ public class DataAccessSupplier : IDataAccessSupplier
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessSupplier",
+                Action = "DeactivateSupplier",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO
             {
                 Code = 500,
@@ -236,6 +256,15 @@ public class DataAccessSupplier : IDataAccessSupplier
         }
         catch (Exception ex)
         {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessSupplier",
+                Action = "GetEntryList",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
             response.Error = new ErrorDTO
             {
                 Code = 500,

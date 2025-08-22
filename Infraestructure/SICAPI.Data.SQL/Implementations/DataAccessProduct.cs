@@ -56,6 +56,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "CreateProduct",
                 Message = $"Exception: {ex.Message}",
@@ -107,6 +108,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "UpdateProduct",
                 Message = $"Exception: {ex.Message}",
@@ -169,6 +171,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "CreateProductProvider",
                 Message = $"Exception: {ex.Message}",
@@ -270,6 +273,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "CreateEntry",
                 Message = $"Exception: {ex.Message}",
@@ -313,6 +317,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "GetAllProducts",
                 Message = $"Exception: {ex.Message}",
@@ -360,6 +365,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "GetStock",
                 Message = $"Exception: {ex.Message}",
@@ -404,6 +410,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "GetStockReal",
                 Message = $"Exception: {ex.Message}",
@@ -470,6 +477,7 @@ public class DataAccessProduct : IDataAccessProduct
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "FullEntryById",
                 Message = $"Exception: {ex.Message}",
@@ -541,6 +549,7 @@ public class DataAccessProduct : IDataAccessProduct
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "UpdateEntryPrices",
                 Message = $"Exception: {ex.Message}",
@@ -591,6 +600,7 @@ public class DataAccessProduct : IDataAccessProduct
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessProduct",
                 Action = "DeactivateProduct",
                 Message = $"Exception: {ex.Message}",

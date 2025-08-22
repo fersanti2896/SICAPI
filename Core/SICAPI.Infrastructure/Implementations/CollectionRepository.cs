@@ -83,6 +83,12 @@ public class CollectionRepository : ICollectionRepository
     public async Task<PaymentsSaleResponse> PaymentsSaleBySaleId(DetailsSaleRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessCollection.PaymentsSaleBySaleId(request, userId), "PaymentsSaleBySaleId", userId);
 
+    public async Task<CreditNoteListResponse> GetCreditNotesByStatus(CreditNoteListRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetCreditNotesByStatus(request, userId), "GetCreditNotesByStatus", userId);
+
+    public async Task<ReplyResponse> ApproveCreditNoteByCollection(ApproveCreditNoteRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.ApproveCreditNoteByCollection(request, userId), "ApproveCreditNoteByCollection", userId);
+
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
         T response = new();

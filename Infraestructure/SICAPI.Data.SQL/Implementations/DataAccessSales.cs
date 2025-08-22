@@ -6,6 +6,7 @@ using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Models.DTOs;
 using SICAPI.Models.Request.Collection;
 using SICAPI.Models.Request.Sales;
+using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
 
@@ -131,6 +132,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "CreateSale",
                 Message = $"Exception: {ex.Message}",
@@ -182,6 +184,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "GetAllSalesByStatus",
                 Message = $"Exception: {ex.Message}",
@@ -233,6 +236,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "DetailsSaleBySaleId",
                 Message = $"Exception: {ex.Message}",
@@ -268,6 +272,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "GetAllSalesStatus",
                 Message = $"Exception: {ex.Message}",
@@ -310,6 +315,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "AssignDeliveryUser",
                 Message = $"Exception: {ex.Message}",
@@ -370,6 +376,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "UpdateSaleStatus",
                 Message = $"Exception: {ex.Message}",
@@ -418,6 +425,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "MovementsSaleBySaleId",
                 Message = $"Exception: {ex.Message}",
@@ -470,6 +478,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "GetAllSalesByStatus",
                 Message = $"Exception: {ex.Message}",
@@ -527,6 +536,7 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "GetSalesByUser",
                 Message = $"Exception: {ex.Message}",
@@ -613,10 +623,248 @@ public class DataAccessSales : IDataAccessSales
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "ConfirmReturnAndRevertStockAsync",
                 Message = $"Excepción: {ex.Message}",
                 InnerException = ex.InnerException?.Message
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<ReplyResponse> CreateCreditNoteRequest(CreditNoteRequest request, int userId)
+    {
+        ReplyResponse response = new();
+
+        using var transaction = await Context.Database.BeginTransactionAsync();
+        try
+        {
+            var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == request.SaleId);
+
+            if (sale == null)
+            {
+                response.Error = new ErrorDTO { Code = 404, Message = "Venta no encontrada" };
+
+                return response;
+            }
+
+            sale.SaleStatusId = 11; // Estatus 11 = Nota de crédito pendiente
+            sale.UpdateDate = NowCDMX;
+            sale.UpdateUser = userId;
+
+            decimal total = request.Products.Sum(p => p.Quantity * p.UnitPrice);
+
+            var note = new TNotesCreditRequests
+            {
+                SaleId = request.SaleId,
+                FinalCreditAmount = total,
+                Comments = request.Comments,
+                CreateUser = userId,
+                CreateDate = NowCDMX,
+                Status = 11,
+                IsApproved = false
+            };
+
+            Context.TNotesCreditRequests.Add(note);
+            await Context.SaveChangesAsync();
+
+            foreach (var product in request.Products)
+            {
+                var detail = new TNotesCreditDetails
+                {
+                    NoteCreditId = note.NoteCreditId,
+                    ProductId = product.ProductId,
+                    Quantity = product.Quantity,
+                    UnitPrice = product.UnitPrice
+                };
+                Context.TNotesCreditDetails.Add(detail);
+            }
+
+            await Context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Nota de crédito solicitada correctamente."
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al crear la nota de crédito: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessSales",
+                Action = "CreateCreditNoteRequest",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<ReplyResponse> ConfirmCreditNoteByWarehouse(ConfirmCreditNoteRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+
+        await using var transaction = await Context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var note = await Context.TNotesCreditRequests
+                                    .Include(n => n.Details)
+                                    .Include(n => n.Sale)
+                                        .ThenInclude(s => s.Client)
+                                    .Include(n => n.Sale)
+                                        .ThenInclude(s => s.User)
+                                    .FirstOrDefaultAsync(n => n.NoteCreditId == request.NoteCreditId);
+
+            if (note == null || note.Status != 12)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "La nota de crédito no existe o no ha sido aprobada por cobranza."
+                };
+                return response;
+            }
+
+            foreach (var item in note.Details)
+            {
+                var inventory = await Context.TInventory.FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
+
+                if (inventory == null)
+                {
+                    response.Error = new ErrorDTO
+                    {
+                        Code = 404,
+                        Message = $"No se encontró inventario para el producto con ID {item.ProductId}"
+                    };
+                    return response;
+                }
+
+                inventory.CurrentStock += item.Quantity;
+                inventory.StockReal = (inventory.StockReal ?? 0) + item.Quantity;
+                inventory.LastUpdateDate = NowCDMX;
+            }
+
+            // Actualizar la nota de crédito
+            note.Status = 13;
+            note.ApprovedByUserId = userId;
+            note.ApprovedDate = NowCDMX;
+            note.CommentsDevolution = request.CommentsDevolution;
+            note.IsApproved = true;
+
+            var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == note.SaleId);
+
+            if (sale == null)
+            {
+                response.Error = new ErrorDTO { Code = 404, Message = "Venta no encontrada" };
+
+                return response;
+            }
+
+            sale.SaleStatusId = 13;
+            sale.UpdateDate = NowCDMX;
+            sale.UpdateUser = userId;
+
+            note.Sale.AmountPending -= note.FinalCreditAmount;
+            if (note.Sale.AmountPending < 0)
+                note.Sale.AmountPending = 0;
+
+            // Actualizar crédito del cliente
+            var client = note.Sale!.Client!;
+            client.AvailableCredit += note.FinalCreditAmount;
+
+            // Actualizar crédito del vendedor
+            var user = note.Sale!.User!;
+            user.AvailableCredit += note.FinalCreditAmount;
+
+            await Context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "La nota de crédito fue confirmada por almacén y el stock fue actualizado correctamente."
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessSales",
+                Action = "ConfirmCreditNoteByWarehouse",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = "Error al confirmar la nota de crédito desde almacén."
+            };
+        }
+
+        return response;
+    }
+
+    public async Task<DetailsNoteCreditResponse> DetailsNoteCreditById(DetailsNoteCreditRequest request, int userId)
+    {
+        DetailsNoteCreditResponse response = new();
+
+        try
+        {
+            var details = await (from n in Context.TNotesCreditRequests
+                                 join nd in Context.TNotesCreditDetails on n.NoteCreditId equals nd.NoteCreditId
+                                 join p in Context.TProducts on nd.ProductId equals p.ProductId
+                                 join u in Context.TUsers on n.CreateUser equals u.UserId
+                                 where n.NoteCreditId == request.NoteCreditId
+                                 select new DetailsNoteCreditDTO
+                                 {
+                                     NoteCreditId = n.NoteCreditId,
+                                     SaleId = n.SaleId,
+                                     ProductId = nd.ProductId,
+                                     ProductName = p.ProductName,
+                                     Quantity = nd.Quantity,
+                                     UnitPrice = nd.UnitPrice,
+                                     SubTotal = nd.SubTotal,
+                                     CreateDate = n.CreateDate,
+                                     CreateUser = n.CreateUser,
+                                     CreadoPor = u.FirstName + " " + (u.LastName ?? ""),
+                                     FinalCreditAmount = n.FinalCreditAmount
+                                 }).ToListAsync();
+
+            response.Result = details;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener detalles de la nota de crédito: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessSales",
+                Action = "DetailsNoteCreditById",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
             });
         }
 

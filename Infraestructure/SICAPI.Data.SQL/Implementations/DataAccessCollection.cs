@@ -101,6 +101,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "ApplyPayment",
                 Message = $"Exception: {ex.Message}",
@@ -137,6 +138,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "GetAllPaymentStatus",
                 Message = $"Exception: {ex.Message}",
@@ -201,6 +203,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "GetSalesPendingPayment",
                 Message = $"Exception: {ex.Message}",
@@ -262,6 +265,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "GetSalesHistorical",
                 Message = $"Exception: {ex.Message}",
@@ -318,6 +322,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "GetSalesPaids",
                 Message = $"Exception: {ex.Message}",
@@ -369,6 +374,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "CancelSaleWithComment",
                 Message = $"Exception: {ex.Message}",
@@ -407,6 +413,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "GetCancelledSaleComments",
                 Message = $"Exception: {ex.Message}",
@@ -515,6 +522,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "CancelSaleByOmission",
                 Message = $"Exception: {ex.Message}",
@@ -642,6 +650,7 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollection",
                 Action = "ApplyMultiplePayments",
                 Message = $"Exception: {ex.Message}",
@@ -659,18 +668,19 @@ public class DataAccessCollection : IDataAccessCollection
         try
         {
             var sale = await Context.TPayments
-                                .Where(p => p.SaleId == request.SaleId)
-                                .Join(Context.TUsers,
-                                      payment => payment.CreateUser,
-                                      user => user.UserId,
-                                      (payment, user) => new PaymentsSaleDTO
-                                      {
-                                          PaymentDate = payment.PaymentDate,
-                                          Comments = payment.Comments ?? "",
-                                          Amount = payment.Amount,
-                                          Username = user.FirstName + " " + user.LastName
-                                      })
-                                .ToListAsync();
+                                    .Where(p => p.SaleId == request.SaleId)
+                                    .Join(Context.TUsers,
+                                          payment => payment.CreateUser,
+                                          user => user.UserId,
+                                          (payment, user) => new PaymentsSaleDTO
+                                          {
+                                              PaymentDate = payment.PaymentDate,
+                                              Comments = payment.Comments ?? "",
+                                              Amount = payment.Amount,
+                                              Username = user.FirstName + " " + user.LastName,
+                                              PaymentMethod = payment.PaymentMethod
+                                          })
+                                    .ToListAsync();
 
             if (sale == null)
             {
@@ -694,11 +704,140 @@ public class DataAccessCollection : IDataAccessCollection
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessCollecion",
                 Action = "PaymentsSaleBySaleId",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
             });
+        }
+
+        return response;
+    }
+
+    public async Task<CreditNoteListResponse> GetCreditNotesByStatus(CreditNoteListRequest request, int userId)
+    {
+        CreditNoteListResponse response = new();
+
+        try
+        {
+            var query = Context.TNotesCreditRequests
+                               .Include(n => n.Sale)
+                                   .ThenInclude(s => s.Client)
+                               .Include(n => n.Sale)
+                                   .ThenInclude(s => s.User)
+                               .Include(n => n.CreatedByUser)
+                               .Where(n => n.CreateDate.Date >= request.StartDate.Date &&
+                                           n.CreateDate.Date <= request.EndDate.Date);
+
+            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+                query = query.Where(n => n.Sale!.ClientId == request.ClientId.Value);
+
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+                query = query.Where(n => n.Sale!.UserId == request.SalesPersonId.Value);
+
+            if (request.SaleStatusId.HasValue)
+                query = query.Where(n => n.Status == request.SaleStatusId.Value);
+
+            var notes = await query
+                .OrderByDescending(n => n.CreateDate)
+                .Select(n => new CreditNoteListDTO
+                {
+                    NoteCreditId = n.NoteCreditId,
+                    SaleId = n.SaleId,
+                    FinalCreditAmount = n.FinalCreditAmount,
+                    Comments = n.Comments,
+                    CreateDate = n.CreateDate,
+                    CreatedBy = n.CreatedByUser.FirstName + " " + n.CreatedByUser.LastName,
+                    Vendedor = n.Sale!.User != null ? n.Sale.User.FirstName + " " + n.Sale.User.LastName : string.Empty,
+                    ClientName = n.Sale!.Client != null ? n.Sale.Client.BusinessName : string.Empty
+                })
+                .ToListAsync();
+
+            response.Result = notes;
+
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO { Code = 500, Message = $"Error: {ex.Message}" };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessCollection",
+                Action = "GetCreditNotesByStatus",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+
+    public async Task<ReplyResponse> ApproveCreditNoteByCollection(ApproveCreditNoteRequest request, int userId)
+    {
+        var response = new ReplyResponse();
+        await using var transaction = await Context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var note = await Context.TNotesCreditRequests.FirstOrDefaultAsync(n => n.NoteCreditId == request.NoteCreditId && n.Status == 11);
+
+            if (note == null)
+            {
+                response.Error = new ErrorDTO
+                {
+                    Code = 404,
+                    Message = "No se encontró la nota de crédito o ya fue procesada."
+                };
+                return response;
+            }
+
+            note.Status = 12; // Aprobada por cobranza
+            note.CommentsCollection = request.CommentsCollection;
+            note.UpdateUser = userId;
+            note.UpdateDate = NowCDMX;
+
+            var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == note.SaleId);
+
+            if (sale == null)
+            {
+                response.Error = new ErrorDTO { Code = 404, Message = "Venta no encontrada" };
+
+                return response;
+            }
+
+            sale.SaleStatusId = 12; // Aprobada por cobranza
+            sale.UpdateDate = NowCDMX;
+            sale.UpdateUser = userId;
+
+            await Context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = "Nota de crédito aprobada correctamente por cobranza."
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessCollection",
+                Action = "ApproveCreditNoteByCollection",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = "Ocurrió un error al aprobar la nota de crédito."
+            };
         }
 
         return response;

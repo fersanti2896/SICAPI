@@ -85,6 +85,7 @@ public class DataAccessClient : IDataAccessClient
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessClient",
                 Action = "CreateClient",
                 Message = $"Exception: {ex.Message}",
@@ -185,6 +186,7 @@ public class DataAccessClient : IDataAccessClient
 
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessClient",
                 Action = "UpdateClient",
                 Message = $"Exception: {ex.Message}",
@@ -252,6 +254,7 @@ public class DataAccessClient : IDataAccessClient
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessClient",
                 Action = "GetAllClients",
                 Message = $"Exception: {ex.Message}",
@@ -293,6 +296,7 @@ public class DataAccessClient : IDataAccessClient
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessClient",
                 Action = "GetClientsByUser",
                 Message = $"Exception: {ex.Message}",
@@ -343,6 +347,7 @@ public class DataAccessClient : IDataAccessClient
         {
             await IDataAccessLogs.Create(new LogsDTO
             {
+                IdUser = userId,
                 Module = "SICAPI-DataAccessClient",
                 Action = "DeactivateClient",
                 Message = $"Exception: {ex.Message}",

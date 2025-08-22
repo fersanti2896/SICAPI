@@ -192,4 +192,41 @@ public class CollectionController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Obtiene el listado de notas de crédito para Cobranza - Notas de Crédito
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("GetCreditNotesByStatus")]
+    public async Task<IActionResult> GetCreditNotesByStatus(CreditNoteListRequest request)
+    {
+        int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await ICollectionRepository.GetCreditNotesByStatus(request, userId);
+        if (result.Error != null)
+            return BadRequest(result);
+
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Cobranza aprueba la nota de crédito
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("ApproveCreditNoteByCollection")]
+    public async Task<IActionResult> ApproveCreditNoteByCollection(ApproveCreditNoteRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var result = await ICollectionRepository.ApproveCreditNoteByCollection(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
 }
