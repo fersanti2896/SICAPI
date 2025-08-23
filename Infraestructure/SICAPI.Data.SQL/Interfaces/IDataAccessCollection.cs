@@ -18,9 +18,10 @@ public interface IDataAccessCollection
     Task<ReplyResponse> CancelSaleWithComment(CancelSaleRequest request, int userId);
     Task<CancelledSaleCommentResponse> GetCancelledSaleComments(CancelledCommentsRequest request, int userId);
     Task<ReplyResponse> CancelSaleByOmission(CancelSaleRequest request, int userId);
-    Task<FinanceBuildResponse> GetFinanceSummaryAsync(FinanceBuildRequest request, int userId);
+    Task<FinanceBuildResponse> GetFinanceSummary(FinanceBuildRequest request, int userId);
     Task<ReplyResponse> ApplyMultiplePayments(ApplyMultiplePaymentRequest request, int userId);
     Task<PaymentsSaleResponse> PaymentsSaleBySaleId(DetailsSaleRequest request, int userId);
     Task<CreditNoteListResponse> GetCreditNotesByStatus(CreditNoteListRequest request, int userId);
     Task<ReplyResponse> ApproveCreditNoteByCollection(ApproveCreditNoteRequest request, int userId);
+    Task<FinanceResumeResponse> GetFinanceResume(FinanceResumeRequest request, int userId);
 }

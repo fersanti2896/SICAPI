@@ -533,7 +533,7 @@ public class DataAccessCollection : IDataAccessCollection
         return response;
     }
 
-    public async Task<FinanceBuildResponse> GetFinanceSummaryAsync(FinanceBuildRequest request, int userId)
+    public async Task<FinanceBuildResponse> GetFinanceSummary(FinanceBuildRequest request, int userId)
     {
         var response = new FinanceBuildResponse();
 
@@ -564,7 +564,7 @@ public class DataAccessCollection : IDataAccessCollection
             await IDataAccessLogs.Create(new LogsDTO
             {
                 Module = "SICAPI-DataAccessFinance",
-                Action = "GetFinanceSummaryAsync",
+                Action = "GetFinanceSummary",
                 Message = $"Excepción: {ex.Message}",
                 InnerException = ex.InnerException?.Message,
                 IdUser = userId
@@ -838,6 +838,53 @@ public class DataAccessCollection : IDataAccessCollection
                 Code = 500,
                 Message = "Ocurrió un error al aprobar la nota de crédito."
             };
+        }
+
+        return response;
+    }
+
+    public async Task<FinanceResumeResponse> GetFinanceResume(FinanceResumeRequest request, int userId)
+    {
+        var response = new FinanceResumeResponse();
+
+        try
+        {
+            var query = Context.TPayments
+                               .Where(p => p.Status == 1 &&
+                                           p.PaymentDate.Date >= request.StartDate.Date &&
+                                           p.PaymentDate.Date <= request.EndDate.Date);
+
+            if (!string.IsNullOrEmpty(request.PaymentMethod))
+                query = query.Where(p => p.PaymentMethod == request.PaymentMethod);
+
+            var payments = await query.Select(p => new FinanceResumeDTO {
+                                            PaymentId = p.PaymentId,
+                                            SaleId = p.SaleId,
+                                            Amount = p.Amount,
+                                            PaymentMethod = p.PaymentMethod,
+                                            PaymentDate = p.PaymentDate
+                                       })
+                                       .OrderByDescending(p => p.PaymentDate)
+                                       .ToListAsync();
+
+            response.Result = payments;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al generar el resumen financiero: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessFinance",
+                Action = "GetFinanceResume",
+                Message = $"Excepción: {ex.Message}",
+                InnerException = ex.InnerException?.Message,
+                IdUser = userId
+            });
         }
 
         return response;

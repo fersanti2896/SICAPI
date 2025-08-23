@@ -165,12 +165,28 @@ public class CollectionController : ControllerBase
     /// <param name="saleId"></param>
     /// <returns></returns>
     [HttpPost]
-    [Route("GetFinanceSummaryAsync")]
-    public async Task<IActionResult> GetFinanceSummaryAsync(FinanceBuildRequest request)
+    [Route("GetFinanceSummary")]
+    public async Task<IActionResult> GetFinanceSummary(FinanceBuildRequest request)
     {
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
-        var result = await ICollectionRepository.GetFinanceSummaryAsync(request, userId);
+        var result = await ICollectionRepository.GetFinanceSummary(request, userId);
+
+        return result.Error != null ? BadRequest(result) : Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene compilado para finanzas por metodo de pago
+    /// </summary>
+    /// <param name="saleId"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("GetFinanceResume")]
+    public async Task<IActionResult> GetFinanceResume(FinanceResumeRequest request)
+    {
+        var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ICollectionRepository.GetFinanceResume(request, userId);
 
         return result.Error != null ? BadRequest(result) : Ok(result);
     }

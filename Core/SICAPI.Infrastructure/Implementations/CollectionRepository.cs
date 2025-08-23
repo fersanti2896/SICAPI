@@ -74,8 +74,8 @@ public class CollectionRepository : ICollectionRepository
     public async Task<ReplyResponse> CancelSaleByOmission(CancelSaleRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessCollection.CancelSaleByOmission(request, userId), "CancelSaleByOmission", userId);
 
-    public async Task<FinanceBuildResponse> GetFinanceSummaryAsync(FinanceBuildRequest request, int userId)
-        => await ExecuteWithLogging(() => IDataAccessCollection.GetFinanceSummaryAsync(request, userId), "GetFinanceSummaryAsync", userId);
+    public async Task<FinanceBuildResponse> GetFinanceSummary(FinanceBuildRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetFinanceSummary(request, userId), "GetFinanceSummary", userId);
 
     public async Task<ReplyResponse> ApplyMultiplePayments(ApplyMultiplePaymentRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessCollection.ApplyMultiplePayments(request, userId), "ApplyMultiplePayments", userId);
@@ -88,6 +88,9 @@ public class CollectionRepository : ICollectionRepository
 
     public async Task<ReplyResponse> ApproveCreditNoteByCollection(ApproveCreditNoteRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessCollection.ApproveCreditNoteByCollection(request, userId), "ApproveCreditNoteByCollection", userId);
+
+    public async Task<FinanceResumeResponse> GetFinanceResume(FinanceResumeRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessCollection.GetFinanceResume(request, userId), "GetFinanceResume", userId);
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {
