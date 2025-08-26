@@ -22,4 +22,5 @@ public interface ISalesRepository
     Task<ReplyResponse> CreateCreditNoteRequest(CreditNoteRequest request, int userId);
     Task<ReplyResponse> ConfirmCreditNoteByWarehouse(ConfirmCreditNoteRequest request, int userId);
     Task<DetailsNoteCreditResponse> DetailsNoteCreditById(DetailsNoteCreditRequest request, int userId);
+    Task<ReplyResponse> UpdateExpiredSales();
 }

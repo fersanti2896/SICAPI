@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.Request.Collection;
@@ -145,6 +146,9 @@ public class SalesController : ControllerBase
 
         var result = await ISalesRepository.GetSalesByDeliveryId(request, userId);
 
+        if (result.Error != null)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
@@ -207,6 +211,26 @@ public class SalesController : ControllerBase
     {
         int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
         var result = await ISalesRepository.DetailsNoteCreditById(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Actualiza ventas a vencidas después de 7 días.
+    /// </summary>
+    /// <returns></returns>
+    [AllowAnonymous]
+    [HttpPost]
+    [Route("UpdateExpiredSales")]
+    public async Task<IActionResult> UpdateExpiredSales(string secret)
+    {
+        if (secret != "Fersa169")
+            return Unauthorized("Clave no válida.");
+
+        var result = await ISalesRepository.UpdateExpiredSales();
 
         if (result.Error != null)
             return BadRequest(result);

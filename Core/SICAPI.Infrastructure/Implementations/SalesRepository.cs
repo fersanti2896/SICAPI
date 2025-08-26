@@ -1,4 +1,5 @@
 ﻿
+using Azure.Core;
 using SICAPI.Data.SQL.Interfaces;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.DTOs;
@@ -119,6 +120,37 @@ public class SalesRepository : ISalesRepository
 
     public async Task<DetailsNoteCreditResponse> DetailsNoteCreditById(DetailsNoteCreditRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessSales.DetailsNoteCreditById(request, userId), "DetailsNoteCreditById", userId);
+
+    public async Task<ReplyResponse> UpdateExpiredSales()
+    {
+        ReplyResponse response = new();
+        try
+        {
+            response = await IDataAccessSales.UpdateExpiredSales();
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var log = new LogsDTO
+            {
+                IdUser = 1,
+                Module = "SICAPI-SalesRepository",
+                Action = "UpdateExpiredSales",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            };
+            await IDataAccessLogs.Create(log);
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = ex.Message
+            };
+
+            return response;
+        }
+    }
 
     private async Task<T> ExecuteWithLogging<T>(Func<Task<T>> action, string actionName, int userId) where T : BaseResponse, new()
     {

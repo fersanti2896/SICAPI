@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SICAPI.Infrastructure.Interfaces;
 using SICAPI.Models.Request.Client;
-using SICAPI.Models.Request.User;
 using SICAPI.Models.Request.Warehouse;
 
 namespace SICAPI.Controllers;
@@ -24,7 +23,6 @@ public class ClientController : ControllerBase
     /// Listado de clientes del sistema
     /// </summary>
     /// <returns></returns>
-    [Authorize]
     [HttpGet]
     [Route("GetAllClients")]
     public async Task<IActionResult> GetAllClients()
@@ -33,6 +31,9 @@ public class ClientController : ControllerBase
 
         var result = await IClientRepository.GetAllClients(userId);
 
+        if (result.Error != null)
+            return BadRequest(result);
+
         return Ok(result);
     }
 
@@ -40,7 +41,6 @@ public class ClientController : ControllerBase
     /// Listado de clientes de un usuario (vendedor)
     /// </summary>
     /// <returns></returns>
-    [Authorize]
     [HttpGet]
     [Route("GetClientsByUser")]
     public async Task<IActionResult> GetClientsByUser()
@@ -48,6 +48,9 @@ public class ClientController : ControllerBase
         var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
 
         var result = await IClientRepository.GetClientsByUser(userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
 
         return Ok(result);
     }
@@ -94,7 +97,6 @@ public class ClientController : ControllerBase
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
-    [Authorize]
     [HttpPost]
     [Route("DeactivateClient")]
     public async Task<IActionResult> DeactivateClient(ActivateRequest request)

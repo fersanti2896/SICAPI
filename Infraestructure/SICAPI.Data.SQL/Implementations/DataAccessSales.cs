@@ -465,7 +465,6 @@ public class DataAccessSales : IDataAccessSales
                                      })
                                      .ToListAsync();
 
-
             response.Result = sales;
         }
         catch (Exception ex)
@@ -870,4 +869,52 @@ public class DataAccessSales : IDataAccessSales
 
         return response;
     }
+
+    public async Task<ReplyResponse> UpdateExpiredSales()
+    {
+        var response = new ReplyResponse();
+
+        try
+        {
+            var limitDate = NowCDMX.AddDays(-7);
+
+            var expiredSales = await Context.TSales
+                .Where(s => s.CreateDate.Date <= limitDate.Date &&
+                            (s.PaymentStatusId == 1 || s.PaymentStatusId == 2)) // 1 = Sin pago, 2 = Parcial
+                .ToListAsync();
+
+            foreach (var sale in expiredSales)
+            {
+                sale.PaymentStatusId = 4; // 4 = Vencido
+                sale.UpdateDate = NowCDMX;
+            }
+
+            await Context.SaveChangesAsync();
+
+            response.Result = new ReplyDTO
+            {
+                Status = true,
+                Msg = $"{expiredSales.Count} ventas fueron marcadas como vencidas correctamente."
+            };
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al actualizar ventas vencidas: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                Module = "SICAPI-DataAccessSales",
+                Action = "UpdateExpiredSales",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
 }

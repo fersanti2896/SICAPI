@@ -10,4 +10,5 @@ public class ClientByUserDTO
     public decimal AvailableCredit { get; set; }           // Crédito Disponible
     public int? PaymentDays { get; set; }
     public int IsBlocked { get; set; }
+    public string Address { get; set; }
 }
