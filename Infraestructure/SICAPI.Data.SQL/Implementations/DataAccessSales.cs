@@ -879,7 +879,7 @@ public class DataAccessSales : IDataAccessSales
             var limitDate = NowCDMX.AddDays(-7);
 
             var expiredSales = await Context.TSales
-                .Where(s => s.CreateDate.Date <= limitDate.Date &&
+                .Where(s => s.SaleDate.Date <= limitDate.Date &&
                             (s.PaymentStatusId == 1 || s.PaymentStatusId == 2)) // 1 = Sin pago, 2 = Parcial
                 .ToListAsync();
 
