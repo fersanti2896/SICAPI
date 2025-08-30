@@ -17,6 +17,7 @@ public class TNotesCreditRequests : TDataGeneric
     public string? Comments { get; set; }
     public string? CommentsCollection { get; set; }
     public string? CommentsDevolution { get; set; }
+    public decimal? FinalCreditAmountMin { get; set; }
 
 
     [ForeignKey("SaleId")]

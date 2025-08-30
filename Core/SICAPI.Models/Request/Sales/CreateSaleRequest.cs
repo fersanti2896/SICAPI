@@ -8,4 +8,5 @@ public class CreateSaleRequest
     public int ClientId { get; set; }
     public List<ProductSaleDTO> Products { get; set; } = new();
     public decimal TotalAmount { get; set; }
+    public decimal TotalAmountMin { get; set; }
 }

@@ -14,8 +14,13 @@ public class TPayments : TDataGeneric
     public string PaymentMethod { get; set; } = null!;
     public DateTime PaymentDate { get; set; }
     public string? Comments { get; set; }
+    public int? ThirdPartySupplierId { get; set; }
+
 
 
     [ForeignKey("SaleId")]
     public virtual TSales? Sale { get; set; }
+
+    [ForeignKey("ThirdPartySupplierId")]
+    public virtual TSuppliers? ThirdPartySupplier { get; set; }
 }

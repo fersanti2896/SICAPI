@@ -43,7 +43,8 @@ public class DataAccessSupplier : IDataAccessSupplier
                 Notes = request.Notes,
                 Status = 1,
                 CreateDate = NowCDMX,
-                CreateUser = userId
+                CreateUser = userId, 
+                ThirdPartyBalance = 0
             };
 
             Context.TSuppliers.Add(supplier);

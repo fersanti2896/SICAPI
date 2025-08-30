@@ -9,6 +9,7 @@ using SICAPI.Models.Request.Sales;
 using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Sales;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SICAPI.Data.SQL.Implementations;
 
@@ -46,7 +47,8 @@ public class DataAccessSales : IDataAccessSales
                 Status = 1,
                 PaymentStatusId = 1,
                 AmountPaid = 0,
-                AmountPending = request.TotalAmount
+                AmountPending = request.TotalAmount,
+                TotalAmountMin = request.TotalAmountMin // Monto total de precio de venta con montos minimos
             };
 
             Context.TSales.Add(sale);
@@ -164,6 +166,7 @@ public class DataAccessSales : IDataAccessSales
                                          StatusName = s.SaleStatus!.StatusName,
                                          TotalAmount = s.TotalAmount,
                                          SaleDate = s.SaleDate,
+                                         SalesPersonId = s.UserId,
                                          Vendedor = s.User.FirstName + " " + (s.User.LastName ?? ""),
                                          Repartidor = s.DeliveryUser != null
                                              ? s.DeliveryUser.FirstName + " " + (s.DeliveryUser.LastName ?? "")
@@ -171,6 +174,11 @@ public class DataAccessSales : IDataAccessSales
                                      })
                                      .ToListAsync();
 
+            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+                sales = sales.Where(s => s.ClientId == request.ClientId.Value).ToList();
+
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+                sales = sales.Where(s => s.SalesPersonId == request.SalesPersonId.Value).ToList();
 
             response.Result = sales;
         }
@@ -187,6 +195,70 @@ public class DataAccessSales : IDataAccessSales
                 IdUser = userId,
                 Module = "SICAPI-DataAccessSales",
                 Action = "GetAllSalesByStatus",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+        }
+
+        return response;
+    }
+
+    public async Task<DetailsMultipleSaleResponse> DetailsMultipleSaleBySaleId(DetailsMultipleSalesRequest request, int userId)
+    {
+        DetailsMultipleSaleResponse response = new();
+
+        try
+        {
+            var salesDetails = await Context.TSalesDetail
+                                            .Include(sd => sd.Product)
+                                            .Include(sd => sd.Sale!)
+                                                .ThenInclude(s => s.Client)
+                                            .Include(sd => sd.Sale!)
+                                                .ThenInclude(s => s.User)
+                                            .Where(sd => request.SaleId.Contains(sd.SaleId))
+                                            .ToListAsync();
+
+            var groupedSales = salesDetails.GroupBy(sd => sd.SaleId)
+                                           .Select(group => new DetailsMultipleSaleDTO
+                                           {
+                                            SaleId = group.Key,
+                                            CreateDate = group.First().Sale!.CreateDate,
+                                            BussinessName = group.First().Sale!.Client!.BusinessName ?? string.Empty,
+                                            Vendedor = (group.First().Sale!.User!.FirstName + " " + (group.First().Sale!.User.LastName ?? "")).Trim(),
+                                            TotalAmount = group.First().Sale!.TotalAmount,
+                                            Products = group.Select(sd => new DetailsSaleDTO
+                                            {
+                                                SaleId = sd.SaleId,
+                                                ProductId = sd.ProductId,
+                                                ProductName = sd.Product!.ProductName,
+                                                Quantity = sd.Quantity,
+                                                UnitPrice = sd.UnitPrice,
+                                                SubTotal = sd.SubTotal,
+                                                Lot = sd.Lot,
+                                                ExpirationDate = sd.ExpirationDate,
+                                                CreateDate = sd.CreateDate,
+                                                Vendedor = (sd.Sale!.User!.FirstName + " " + (sd.Sale.User.LastName ?? "")).Trim(),
+                                                Repartidor = sd.Sale.DeliveryUser != null
+                                                        ? (sd.Sale.DeliveryUser.FirstName + " " + (sd.Sale.DeliveryUser.LastName ?? "") + " " + (sd.Sale.DeliveryUser.MLastName ?? "")).Trim()
+                                                        : "Sin Asignar"
+                                            }).ToList()
+                                           }).ToList();
+
+            response.Result = groupedSales;
+        }
+        catch (Exception ex)
+        {
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error al obtener detalles de la venta: {ex.Message}"
+            };
+
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessSales",
+                Action = "DetailsMultipleSaleBySaleId",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"Inner: {ex.InnerException?.Message}"
             });
@@ -738,6 +810,8 @@ public class DataAccessSales : IDataAccessSales
                 return response;
             }
 
+            decimal totalCreditMin = 0;
+
             foreach (var item in note.Details)
             {
                 var inventory = await Context.TInventory.FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
@@ -755,6 +829,21 @@ public class DataAccessSales : IDataAccessSales
                 inventory.CurrentStock += item.Quantity;
                 inventory.StockReal = (inventory.StockReal ?? 0) + item.Quantity;
                 inventory.LastUpdateDate = NowCDMX;
+
+                // Buscar precio mínimo desde TProducts
+                var product = await Context.TProducts.FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
+                if (product == null)
+                {
+                    response.Error = new ErrorDTO
+                    {
+                        Code = 404,
+                        Message = $"No se encontró el producto con ID {item.ProductId} en el catálogo"
+                    };
+                    return response;
+                }
+
+                var priceMin = product.Price ?? 0;
+                totalCreditMin += item.Quantity * priceMin;
             }
 
             // Actualizar la nota de crédito
@@ -763,6 +852,7 @@ public class DataAccessSales : IDataAccessSales
             note.ApprovedDate = NowCDMX;
             note.CommentsDevolution = request.CommentsDevolution;
             note.IsApproved = true;
+            note.FinalCreditAmountMin = totalCreditMin;
 
             var sale = await Context.TSales.FirstOrDefaultAsync(s => s.SaleId == note.SaleId);
 
@@ -777,6 +867,7 @@ public class DataAccessSales : IDataAccessSales
             sale.UpdateDate = NowCDMX;
             sale.UpdateUser = userId;
 
+            note.Sale.AmountPaid += note.FinalCreditAmount;
             note.Sale.AmountPending -= note.FinalCreditAmount;
             if (note.Sale.AmountPending < 0)
                 note.Sale.AmountPending = 0;

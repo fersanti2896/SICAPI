@@ -22,4 +22,5 @@ public interface IDataAccessSales
     Task<ReplyResponse> ConfirmCreditNoteByWarehouse(ConfirmCreditNoteRequest request, int userId);
     Task<DetailsNoteCreditResponse> DetailsNoteCreditById(DetailsNoteCreditRequest request, int userId);
     Task<ReplyResponse> UpdateExpiredSales();
+    Task<DetailsMultipleSaleResponse> DetailsMultipleSaleBySaleId(DetailsMultipleSalesRequest request, int userId);
 }

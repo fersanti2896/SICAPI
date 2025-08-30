@@ -17,4 +17,5 @@ public class TSuppliers : TDataGeneric
     public string? Address { get; set; } // Dirección
     public string? PaymentTerms { get; set; } // Condiciones de pago
     public string? Notes { get; set; } // Notas adicionales
+    public decimal? ThirdPartyBalance { get; set; } // Saldo Disponible (Para Cuenta de Tercero)
 }

@@ -9,6 +9,7 @@ public class SaleDTO
     public string StatusName { get; set; }
     public decimal TotalAmount { get; set; }
     public DateTime SaleDate { get; set; }
+    public int SalesPersonId { get; set; }
     public string? Vendedor { get; set; }
     public string? Repartidor { get; set; }
 }

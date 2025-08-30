@@ -15,6 +15,7 @@ public class TSales : TDataGeneric
     public int UserId { get; set; }                  // ID del vendedor (usuario que genera la venta)
     public DateTime SaleDate { get; set; }           // Fecha en la que se realiza la venta
     public decimal TotalAmount { get; set; }         // Monto total de la venta
+    public decimal TotalAmountMin { get; set; }      // Monto total de la venta (con montos minimos de precio)
     public int SaleStatusId { get; set; }            // Estatus actual del ticket
     public int? DeliveryUserId { get; set; }
     public string? Comments { get; set; }

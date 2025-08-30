@@ -121,6 +121,9 @@ public class SalesRepository : ISalesRepository
     public async Task<DetailsNoteCreditResponse> DetailsNoteCreditById(DetailsNoteCreditRequest request, int userId)
         => await ExecuteWithLogging(() => IDataAccessSales.DetailsNoteCreditById(request, userId), "DetailsNoteCreditById", userId);
 
+    public async Task<DetailsMultipleSaleResponse> DetailsMultipleSaleBySaleId(DetailsMultipleSalesRequest request, int userId)
+        => await ExecuteWithLogging(() => IDataAccessSales.DetailsMultipleSaleBySaleId(request, userId), "DetailsMultipleSaleBySaleId", userId);
+
     public async Task<ReplyResponse> UpdateExpiredSales()
     {
         ReplyResponse response = new();

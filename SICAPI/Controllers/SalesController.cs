@@ -237,4 +237,23 @@ public class SalesController : ControllerBase
 
         return Ok(result);
     }
+
+    /// <summary>
+    /// Servicio para los detalles de cada venta
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    [HttpPost]
+    [Route("DetailsMultipleSales")]
+    public async Task<IActionResult> DetailsMultipleSales(DetailsMultipleSalesRequest request)
+    {
+        int userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+
+        var result = await ISalesRepository.DetailsMultipleSaleBySaleId(request, userId);
+
+        if (result.Error != null)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
 }

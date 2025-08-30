@@ -54,6 +54,27 @@ public class DataAccessCollection : IDataAccessCollection
                 CreateUser = userId,
                 Status = 1
             };
+
+            // Si el método es pago cuenta de tercero, se asigna el proveedor
+            if (request.Method == "Pago Cuenta de Tercero")
+            {
+                if (request.ThirdPartySupplierId == null)
+                    throw new Exception("Debe proporcionar el proveedor para Pago Cuenta de Tercero");
+
+                payment.ThirdPartySupplierId = request.ThirdPartySupplierId;
+
+                // Actualizar saldo del proveedor (como una “cuenta de banco”)
+                var supplier = await Context.TSuppliers.FirstOrDefaultAsync(s => s.SupplierId == request.ThirdPartySupplierId);
+
+                if (supplier == null)
+                    throw new Exception($"Proveedor no encontrado con ID {request.ThirdPartySupplierId}");
+
+                supplier.ThirdPartyBalance += request.Amount;
+                supplier.UpdateDate = NowCDMX;
+                supplier.UpdateUser = userId;
+            }
+
+
             Context.TPayments.Add(payment);
 
             // Actualizar venta
@@ -602,6 +623,26 @@ public class DataAccessCollection : IDataAccessCollection
                     CreateUser = userId,
                     Status = 1
                 };
+
+                // Si el método es pago cuenta de tercero, se asigna el proveedor
+                if (request.Method == "Pago Cuenta de Tercero")
+                {
+                    if (request.ThirdPartySupplierId == null)
+                        throw new Exception("Debe proporcionar el proveedor para Pago Cuenta de Tercero");
+
+                    payment.ThirdPartySupplierId = request.ThirdPartySupplierId;
+
+                    // Actualizar saldo del proveedor (como una “cuenta de banco”)
+                    var supplier = await Context.TSuppliers.FirstOrDefaultAsync(s => s.SupplierId == request.ThirdPartySupplierId);
+
+                    if (supplier == null)
+                        throw new Exception($"Proveedor no encontrado con ID {request.ThirdPartySupplierId}");
+
+                    supplier.ThirdPartyBalance += saleDto.Amount;
+                    supplier.UpdateDate = NowCDMX;
+                    supplier.UpdateUser = userId;
+                }
+
                 Context.TPayments.Add(payment);
 
                 // Actualizar venta
@@ -613,6 +654,7 @@ public class DataAccessCollection : IDataAccessCollection
 
                 // Actualizar crédito del cliente
                 var client = await Context.TClients.FirstOrDefaultAsync(c => c.ClientId == sale.ClientId);
+
                 if (client != null)
                 {
                     client.AvailableCredit += saleDto.Amount;
@@ -622,6 +664,7 @@ public class DataAccessCollection : IDataAccessCollection
 
                 // Actualizar crédito del vendedor
                 var seller = await Context.TUsers.FirstOrDefaultAsync(u => u.UserId == sale.UserId);
+
                 if (seller != null)
                 {
                     seller.AvailableCredit += saleDto.Amount;
