@@ -44,7 +44,8 @@ public class DataAccessSupplier : IDataAccessSupplier
                 Status = 1,
                 CreateDate = NowCDMX,
                 CreateUser = userId, 
-                ThirdPartyBalance = 0
+                ThirdPartyBalance = 0,
+                Balance = 0
             };
 
             Context.TSuppliers.Add(supplier);
@@ -150,7 +151,8 @@ public class DataAccessSupplier : IDataAccessSupplier
                                         Phone = u.Phone,
                                         Address = u.Address,
                                         Status = u.Status,
-                                        DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo"
+                                        DescriptionStatus = u.Status == 1 ? "Activo" : "Inactivo",
+                                        Balance = u.Balance
                                      })
                                     .ToListAsync();
 

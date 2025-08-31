@@ -529,6 +529,14 @@ public class DataAccessProduct : IDataAccessProduct
             entry.UpdateDate = NowCDMX;
             entry.UpdateUser = userId;
 
+            var supplier = await Context.TSuppliers.FirstOrDefaultAsync(s => s.SupplierId == entry.SupplierId);
+            if (supplier == null)
+                throw new Exception($"Proveedor {entry.SupplierId} no encontrado");
+
+            supplier.Balance -= newTotal;
+            supplier.UpdateDate = NowCDMX;
+            supplier.UpdateUser = userId;
+
             await Context.SaveChangesAsync();
             await transaction.CommitAsync();
 

@@ -9,4 +9,5 @@ public class SupplierDTO
     public string? Address { get; set; }
     public int Status { get; set; }
     public string DescriptionStatus { get; set; }
+    public decimal? Balance { get; set; }
 }

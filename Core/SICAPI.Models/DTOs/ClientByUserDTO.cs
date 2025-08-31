@@ -3,6 +3,7 @@ namespace SICAPI.Models.DTOs;
 
 public class ClientByUserDTO
 {
+    public int UserId { get; set; }
     public int ClientId { get; set; }
     public string ContactName { get; set; } = null!;       // Nombre de contacto del cliente
     public string BusinessName { get; set; } = null!;      // Razón social

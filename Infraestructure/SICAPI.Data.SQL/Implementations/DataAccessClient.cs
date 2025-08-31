@@ -8,6 +8,7 @@ using SICAPI.Models.Request.Warehouse;
 using SICAPI.Models.Response;
 using SICAPI.Models.Response.Client;
 using SICAPI.Shared.Helpers;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SICAPI.Data.SQL.Implementations;
 
@@ -277,35 +278,40 @@ public class DataAccessClient : IDataAccessClient
 
         try
         {
-            var clients = await (from c in Context.TClients
-                                 where c.UserId == userId
-                                 join ca in Context.TClientsAddress on c.ClientId equals ca.ClientId into addr
-                                 from ca in addr.DefaultIfEmpty()
-                                 join pc in Context.TPostalCodes on
-                                    new { ca.Cve_CodigoPostal, ca.Cve_Estado, ca.Cve_Municipio, ca.Cve_Colonia }
-                                    equals new
-                                    {
-                                        Cve_CodigoPostal = pc.d_codigo,
-                                        Cve_Estado = pc.c_estado,
-                                        Cve_Municipio = pc.c_mnpio,
-                                        Cve_Colonia = pc.id_asenta_cpcons
-                                    } into postal
-                                 from pc in postal.DefaultIfEmpty()
-                                 select new ClientByUserDTO
-                                 {
-                                     ClientId = c.ClientId,
-                                     ContactName = c.ClientName,
-                                     BusinessName = c.BusinessName,
-                                     CreditLimit = c.CreditLimit,
-                                     AvailableCredit = c.AvailableCredit,
-                                     PaymentDays = c.PaymentDays,
-                                     IsBlocked = c.IsBlocked,
-                                     Address = ca != null
-                                         ? $"{ca.Street} #{ca.ExtNbr}, {pc.d_asenta}, {pc.D_mnpio}, {pc.d_estado}, CP {pc.d_codigo}"
-                                         : null
-                                 }).ToListAsync();
+            var superAdmins = new[] { 8, 26 };
 
-            response.Result = clients;
+            var query = from c in Context.TClients
+                        join ca in Context.TClientsAddress on c.ClientId equals ca.ClientId into addr
+                        from ca in addr.DefaultIfEmpty()
+                        join pc in Context.TPostalCodes on
+                            new { ca.Cve_CodigoPostal, ca.Cve_Estado, ca.Cve_Municipio, ca.Cve_Colonia }
+                            equals new
+                            {
+                                Cve_CodigoPostal = pc.d_codigo,
+                                Cve_Estado = pc.c_estado,
+                                Cve_Municipio = pc.c_mnpio,
+                                Cve_Colonia = pc.id_asenta_cpcons
+                            } into postal
+                        from pc in postal.DefaultIfEmpty()
+                        select new ClientByUserDTO
+                        {
+                            UserId = c.UserId,
+                            ClientId = c.ClientId,
+                            ContactName = c.ClientName,
+                            BusinessName = c.BusinessName,
+                            CreditLimit = c.CreditLimit,
+                            AvailableCredit = c.AvailableCredit,
+                            PaymentDays = c.PaymentDays,
+                            IsBlocked = c.IsBlocked,
+                            Address = ca != null
+                                ? $"{ca.Street} #{ca.ExtNbr}, {pc.d_asenta}, {pc.D_mnpio}, {pc.d_estado}, CP {pc.d_codigo}"
+                                : null
+                        };
+
+            if (!superAdmins.Contains(userId))
+                query = query.Where(x => x.UserId == userId);
+
+            response.Result = await query.ToListAsync();
         }
         catch (Exception ex)
         {
