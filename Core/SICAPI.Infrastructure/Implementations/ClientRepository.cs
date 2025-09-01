@@ -47,7 +47,7 @@ public class ClientRepository : IClientRepository
         {
             var log = new LogsDTO
             {
-                IdUser = 1,
+                IdUser = userId,
                 Module = "SICAPI-ClientRepository",
                 Action = "GetAllClients",
                 Message = $"Exception: {ex.Message}",
@@ -78,9 +78,40 @@ public class ClientRepository : IClientRepository
         {
             var log = new LogsDTO
             {
-                IdUser = 1,
+                IdUser = userId,
                 Module = "SICAPI-ClientRepository",
-                Action = "ClientsByUserResponse",
+                Action = "GetClientsByUser",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"InnerException: {ex.InnerException?.Message}"
+            };
+            await IDataAccessLogs.Create(log);
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = ex.Message
+            };
+
+            return response;
+        }
+    }
+
+    public async Task<ClientsByUserResponse> GetClientsNotAddressByUser(int userId)
+    {
+        ClientsByUserResponse response = new();
+        try
+        {
+            response = await IDataAccessClient.GetClientsNotAddressByUser(userId);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            var log = new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-ClientRepository",
+                Action = "GetClientsNotAddressByUser",
                 Message = $"Exception: {ex.Message}",
                 InnerException = $"InnerException: {ex.InnerException?.Message}"
             };

@@ -12,4 +12,5 @@ public interface IClientRepository
     Task<ClientsResponse> GetAllClients(int userId);
     Task<ClientsByUserResponse> GetClientsByUser(int userId);
     Task<ReplyResponse> DeactivateClient(ActivateRequest request, int userId);
+    Task<ClientsByUserResponse> GetClientsNotAddressByUser(int userId);
 }

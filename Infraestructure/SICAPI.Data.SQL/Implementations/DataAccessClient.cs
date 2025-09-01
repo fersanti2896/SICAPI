@@ -334,6 +334,54 @@ public class DataAccessClient : IDataAccessClient
         return response;
     }
 
+    public async Task<ClientsByUserResponse> GetClientsNotAddressByUser(int userId)
+    {
+        ClientsByUserResponse response = new();
+
+        try
+        {
+            var superAdmins = new[] { 8, 26 };
+
+            var query = from c in Context.TClients
+                        
+                        select new ClientByUserDTO
+                        {
+                            UserId = c.UserId,
+                            ClientId = c.ClientId,
+                            ContactName = c.ClientName,
+                            BusinessName = c.BusinessName,
+                            CreditLimit = c.CreditLimit,
+                            AvailableCredit = c.AvailableCredit,
+                            PaymentDays = c.PaymentDays,
+                            IsBlocked = c.IsBlocked
+                        };
+
+            if (!superAdmins.Contains(userId))
+                query = query.Where(x => x.UserId == userId);
+
+            response.Result = await query.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            await IDataAccessLogs.Create(new LogsDTO
+            {
+                IdUser = userId,
+                Module = "SICAPI-DataAccessClient",
+                Action = "GetClientsByUser",
+                Message = $"Exception: {ex.Message}",
+                InnerException = $"Inner: {ex.InnerException?.Message}"
+            });
+
+            response.Error = new ErrorDTO
+            {
+                Code = 500,
+                Message = $"Error Exception: {ex.InnerException?.Message ?? ex.Message}"
+            };
+        }
+
+        return response;
+    }
+
     public async Task<ReplyResponse> DeactivateClient(ActivateRequest request, int userId)
     {
         var response = new ReplyResponse();
