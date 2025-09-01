@@ -359,7 +359,7 @@ public class DataAccessClient : IDataAccessClient
             if (!superAdmins.Contains(userId))
                 query = query.Where(x => x.UserId == userId);
 
-            response.Result = await query.ToListAsync();
+            response.Result = await query.OrderBy(x => x.BusinessName).ToListAsync();
         }
         catch (Exception ex)
         {
