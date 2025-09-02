@@ -174,10 +174,10 @@ public class DataAccessSales : IDataAccessSales
                                      })
                                      .ToListAsync();
 
-            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+            if (request.ClientId.HasValue && request.ClientId.Value != 20000)
                 sales = sales.Where(s => s.ClientId == request.ClientId.Value).ToList();
 
-            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20000)
                 sales = sales.Where(s => s.SalesPersonId == request.SalesPersonId.Value).ToList();
 
             response.Result = sales;

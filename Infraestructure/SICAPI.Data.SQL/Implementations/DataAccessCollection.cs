@@ -182,16 +182,16 @@ public class DataAccessCollection : IDataAccessCollection
                                        s.CreateDate.Date >= request.StartDate.Date &&
                                        s.CreateDate.Date <= request.EndDate.Date);
 
-            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+            if (request.ClientId.HasValue && request.ClientId.Value != 20000)
                 query = query.Where(s => s.ClientId == request.ClientId.Value);
 
-            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20000)
                 query = query.Where(s => s.UserId == request.SalesPersonId.Value);
 
-            if (request.SaleStatusId.HasValue && request.SaleStatusId.Value != 20)
+            if (request.SaleStatusId.HasValue && request.SaleStatusId.Value != 20000)
                 query = query.Where(s => s.SaleStatusId == request.SaleStatusId.Value);
 
-            if (request.PaymentStatusId.HasValue && request.PaymentStatusId.Value != 20)
+            if (request.PaymentStatusId.HasValue && request.PaymentStatusId.Value != 20000)
                 query = query.Where(s => s.PaymentStatusId == request.PaymentStatusId.Value);
 
             var sales = await query.Include(s => s.User)
@@ -244,16 +244,16 @@ public class DataAccessCollection : IDataAccessCollection
             var query = Context.TSales
                            .Where(s => s.Status == 1 && s.CreateDate.Date >= request.StartDate.Date && s.CreateDate.Date <= request.EndDate.Date);
 
-            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+            if (request.ClientId.HasValue && request.ClientId.Value != 20000)
                 query = query.Where(s => s.ClientId == request.ClientId.Value);
 
-            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20000)
                 query = query.Where(s => s.UserId == request.SalesPersonId.Value);
 
-            if (request.SaleStatusId.HasValue && request.SaleStatusId.Value != 20)
+            if (request.SaleStatusId.HasValue && request.SaleStatusId.Value != 20000)
                 query = query.Where(s => s.SaleStatusId == request.SaleStatusId.Value);
 
-            if (request.PaymentStatusId.HasValue && request.PaymentStatusId.Value != 20)
+            if (request.PaymentStatusId.HasValue && request.PaymentStatusId.Value != 20000)
                 query = query.Where(s => s.PaymentStatusId == request.PaymentStatusId.Value);
 
             var sales = await query.Include(s => s.User)
@@ -306,10 +306,10 @@ public class DataAccessCollection : IDataAccessCollection
             var query = Context.TSales
                            .Where(s => s.Status == 1 && s.PaymentStatusId == 3 && s.CreateDate.Date >= request.StartDate.Date && s.CreateDate.Date <= request.EndDate.Date);
 
-            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+            if (request.ClientId.HasValue && request.ClientId.Value != 20000)
                 query = query.Where(s => s.ClientId == request.ClientId.Value);
 
-            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20000)
                 query = query.Where(s => s.UserId == request.SalesPersonId.Value);
 
 
@@ -773,10 +773,10 @@ public class DataAccessCollection : IDataAccessCollection
                                .Where(n => n.CreateDate.Date >= request.StartDate.Date &&
                                            n.CreateDate.Date <= request.EndDate.Date);
 
-            if (request.ClientId.HasValue && request.ClientId.Value != 20)
+            if (request.ClientId.HasValue && request.ClientId.Value != 20000)
                 query = query.Where(n => n.Sale!.ClientId == request.ClientId.Value);
 
-            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20)
+            if (request.SalesPersonId.HasValue && request.SalesPersonId.Value != 20000)
                 query = query.Where(n => n.Sale!.UserId == request.SalesPersonId.Value);
 
             if (request.SaleStatusId.HasValue)
