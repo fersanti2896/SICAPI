@@ -524,6 +524,8 @@ public class DataAccessProduct : IDataAccessProduct
             }
 
             entry.TotalAmount = newTotal;
+            entry.AmountPaid = 0;
+            entry.AmountPending = newTotal;
             entry.Observations = request.Observations;
             entry.ExpectedPaymentDate = request.ExpectedPaymentDate;
             entry.UpdateDate = NowCDMX;

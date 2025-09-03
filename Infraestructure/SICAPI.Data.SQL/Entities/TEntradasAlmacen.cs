@@ -15,6 +15,8 @@ public class TEntradasAlmacen : TDataGeneric
     public DateTime? ExpectedPaymentDate { get; set; } // Fecha pactada para pago
     public decimal TotalAmount { get; set; } // Monto total de la compra
     public string? Observations { get; set; }
+    public decimal? AmountPaid { get; set; }
+    public decimal? AmountPending { get; set; }
 
     public virtual TSuppliers? Supplier { get; set; }
 }
